@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC ⇌ IBIT 转换器</title>
+    <style>
+        :root {
+            --btc-color: #F7931A;
+            --ibit-color: #000000;
+            --bg-gradient: linear-gradient(135deg, #1a1b26 0%, #2e3440 100%);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-color: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 背景动态圆球 */
+        .bg-blob {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: var(--btc-color);
+            filter: blur(150px);
+            opacity: 0.2;
+            border-radius: 50%;
+            z-index: -1;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+
+        @keyframes float {
+            0% { transform: translate(-100px, -100px); }
+            100% { transform: translate(100px, 100px); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            margin: 8px 0 0;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .currency-icon {
+            position: absolute;
+            left: 16px;
+            font-weight: 800;
+            font-size: 18px;
+            z-index: 2;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 16px 16px 16px 50px;
+            font-size: 24px;
+            color: white;
+            font-family: monospace;
+            outline: none;
+            transition: all 0.3s ease;
+            box-sizing: border-box; /* Fix sizing */
+        }
+
+        /* 移除输入框的小箭头 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input:focus {
+            border-color: var(--btc-color);
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 15px rgba(247, 147, 26, 0.3);
+        }
+
+        .divider {
+            text-align: center;
+            margin: -10px 0 15px;
+            font-size: 20px;
+            opacity: 0.5;
+            transform: rotate(90deg);
+        }
+
+        .ratio-settings {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+        }
+
+        .ratio-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--btc-color);
+            width: 60px;
+            text-align: center;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .clear-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .clear-btn:hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-blob"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>⚡ 价格转换器</h1>
+            <p>Bitcoin (BTC) <-> iShares Bitcoin Trust (IBIT)</p>
+        </div>
+
+        <div class="input-group">
+            <label for="btc">BTC 价格 (USD)</label>
+            <div class="input-wrapper">
+                <span class="currency-icon" style="color: var(--btc-color);">₿</span>
+                <input type="number" id="btc" placeholder="98000" step="any">
+            </div>
+        </div>
+
+        <div class="divider">⇌</div>
+
+        <div class="input-group">
+            <label for="ibit">IBIT 价格 (USD)</label>
+            <div class="input-wrapper">
+                <span class="currency-icon" style="color: white;">$</span>
+                <input type="number" id="ibit" placeholder="56.50" step="any">
+            </div>
+        </div>
+
+        <button class="clear-btn" onclick="clearInputs()">清除数据</button>
+
+        <div class="ratio-settings">
+            <p>换算逻辑：1 BTC ≈ <input type="number" class="ratio-input" id="ratio" value="1745"> 股 IBIT</p>
+            <p style="font-size: 10px; opacity: 0.4;">*该比例基于资产净值，随市场波动。可手动修改。</p>
+        </div>
+    </div>
+
+    <script>
+        // 获取 DOM 元素
+        const btcInput = document.getElementById('btc');
+        const ibitInput = document.getElementById('ibit');
+        const ratioInput = document.getElementById('ratio');
+
+        // 核心计算函数
+        function calculateFromBTC() {
+            const btcPrice = parseFloat(btcInput.value);
+            const ratio = parseFloat(ratioInput.value);
+            
+            if (!isNaN(btcPrice) && !isNaN(ratio)) {
+                // IBIT 价格 = BTC 价格 / 比率
+                const ibitPrice = btcPrice / ratio;
+                ibitInput.value = ibitPrice.toFixed(2);
+            } else {
+                ibitInput.value = '';
+            }
+        }
+
+        function calculateFromIBIT() {
+            const ibitPrice = parseFloat(ibitInput.value);
+            const ratio = parseFloat(ratioInput.value);
+
+            if (!isNaN(ibitPrice) && !isNaN(ratio)) {
+                // BTC 价格 = IBIT 价格 * 比率
+                const btcPrice = ibitPrice * ratio;
+                btcInput.value = btcPrice.toFixed(2);
+            } else {
+                btcInput.value = '';
+            }
+        }
+
+        function clearInputs() {
+            btcInput.value = '';
+            ibitInput.value = '';
+            btcInput.focus();
+        }
+
+        // 添加事件监听
+        // input 事件会在用户输入时实时触发
+        btcInput.addEventListener('input', calculateFromBTC);
+        ibitInput.addEventListener('input', calculateFromIBIT);
+        
+        // 当用户修改比率时，重新根据当前有值的输入框计算另一个
+        ratioInput.addEventListener('input', () => {
+            if (btcInput.value) {
+                calculateFromBTC();
+            } else if (ibitInput.value) {
+                calculateFromIBIT();
+            }
+        });
+
+    </script>
+</body>
+</html>
