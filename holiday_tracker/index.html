@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tesla Leave Tracker</title>
+    <title>Tesla Leave Tracker (Auto-Sync)</title>
     <style>
         :root {
             --tesla-red: #E82127;
             --tesla-dark: #121212;
             --tesla-gray: #222222;
             --tesla-text: #F5F5F5;
-            --tesla-text-dim: #AAAAAA; /* 调亮了暗色文字，确保可见 */
+            --tesla-text-dim: #AAAAAA;
             --font-stack: "Gotham", "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
@@ -38,6 +38,16 @@
             font-weight: 600;
             font-size: 14px;
             opacity: 0.8;
+            position: relative;
+        }
+
+        /* --- Auto-Sync Status Indicator --- */
+        #syncStatus {
+            font-size: 10px;
+            height: 14px;
+            margin-top: 5px;
+            transition: color 0.3s;
+            color: #555;
         }
 
         /* --- Dashboard --- */
@@ -102,7 +112,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px; /* 稍微减小头部间距 */
+            margin-bottom: 10px;
         }
 
         .month-display { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
@@ -123,15 +133,9 @@
             margin-top: 10px;
         }
 
-        /* 星期头样式 - 重点修复 */
         .weekday { 
-            text-align: center; 
-            font-size: 10px; 
-            color: var(--tesla-text-dim); /* 使用亮灰色 */
-            padding: 8px 0; 
-            text-transform: uppercase; 
-            font-weight: 600;
-            letter-spacing: 1px;
+            text-align: center; font-size: 10px; color: var(--tesla-text-dim);
+            padding: 8px 0; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;
         }
 
         .day {
@@ -192,7 +196,10 @@
 <body>
 
 <div class="container">
-    <header>Tesla Leave Tracker</header>
+    <header>
+        Tesla Leave Tracker
+        <div id="syncStatus">Ready</div>
+    </header>
 
     <div class="dashboard">
         <div class="controls">
@@ -228,16 +235,16 @@
     </div>
 
     <div class="cloud-section">
-        <div class="cloud-title">Cloud Sync Settings 云同步设置</div>
+        <div class="cloud-title">Cloud Sync Setup (Auto Enabled)</div>
         <div class="cloud-inputs">
             <input type="text" id="binId" placeholder="Bin ID (e.g. 6740...)">
             <input type="text" id="apiKey" placeholder="API Key (X-Master-Key)">
         </div>
         <div class="cloud-buttons">
-            <button class="btn" onclick="downloadFromCloud()">Download 下载</button>
-            <button class="btn btn-primary" onclick="uploadToCloud()">Upload 上传</button>
+            <button class="btn" onclick="downloadFromCloud()">Force Pull (强制下载)</button>
+            <button class="btn btn-primary" onclick="uploadToCloud()">Force Push (强制上传)</button>
         </div>
-        <div class="status-msg" id="statusMsg">Enter ID & Key to sync</div>
+        <div class="status-msg" id="statusMsg">Enter ID & Key to enable auto-sync</div>
     </div>
 
     <div class="actions">
@@ -246,11 +253,12 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'tesla_leave_data_v6';
+    const STORAGE_KEY = 'tesla_leave_data_v7';
     const CONFIG_KEY = 'tesla_cloud_config';
     
     let currentDate = new Date();
     let selectedDates = new Set();
+    let autoSaveTimer = null;
 
     // DOM Elements
     const grid = document.getElementById('calendarGrid');
@@ -262,6 +270,7 @@
     const binIdInput = document.getElementById('binId');
     const apiKeyInput = document.getElementById('apiKey');
     const statusMsg = document.getElementById('statusMsg');
+    const syncStatus = document.getElementById('syncStatus');
 
     function init() {
         loadLocalData();
@@ -282,8 +291,19 @@
         startDateInput.addEventListener('change', updateDashboard);
         endDateInput.addEventListener('change', updateDashboard);
         
-        binIdInput.addEventListener('change', saveCloudConfig);
-        apiKeyInput.addEventListener('change', saveCloudConfig);
+        binIdInput.addEventListener('change', () => { saveCloudConfig(); attemptAutoSync(); });
+        apiKeyInput.addEventListener('change', () => { saveCloudConfig(); attemptAutoSync(); });
+
+        // 启动时尝试自动同步
+        if(binIdInput.value && apiKeyInput.value) {
+            downloadFromCloud(true); // true means silent mode (no big alert)
+        }
+    }
+
+    function attemptAutoSync() {
+        if(binIdInput.value && apiKeyInput.value) {
+            downloadFromCloud(true);
+        }
     }
 
     // --- Core Calendar Logic ---
@@ -293,34 +313,27 @@
         const month = currentDate.getMonth();
         const monthNamesEn = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
-        // 标题修复：分两行显示，避免重复
         monthDisplay.innerHTML = `
             <span class="month-en">${monthNamesEn[month]} ${year}</span>
             <span class="month-cn">${year}年${month+1}月</span>
         `;
 
-        // 绘制星期头 (SUN - SAT)
         const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         weekdays.forEach(day => {
-            const el = document.createElement('div');
-            el.className = 'weekday';
-            el.innerText = day;
-            grid.appendChild(el);
+            const el = document.createElement('div'); el.className = 'weekday'; el.innerText = day; grid.appendChild(el);
         });
 
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
         const daysInMonth = lastDay.getDate();
-        const startingDayIndex = firstDay.getDay(); // 0 = Sun, 1 = Mon...
+        const startingDayIndex = firstDay.getDay();
 
-        // 填充空白
         for (let i = 0; i < startingDayIndex; i++) {
             const el = document.createElement('div'); el.className = 'day empty'; grid.appendChild(el);
         }
 
         const todayStr = formatDateISO(new Date());
         
-        // 填充日期
         for (let i = 1; i <= daysInMonth; i++) {
             const dayEl = document.createElement('div');
             dayEl.className = 'day';
@@ -346,6 +359,29 @@
             el.classList.add('active');
         }
         saveLocalData();
+        
+        // 触发自动保存逻辑
+        triggerAutoSave();
+    }
+
+    function triggerAutoSave() {
+        // 如果没有配置云端，则不执行
+        if(!binIdInput.value || !apiKeyInput.value) return;
+
+        updateSyncStatus("Waiting to save...", "#888");
+        
+        // 清除之前的计时器 (防抖动)
+        if(autoSaveTimer) clearTimeout(autoSaveTimer);
+
+        // 设置新的计时器，2秒后执行上传
+        autoSaveTimer = setTimeout(() => {
+            uploadToCloud(true);
+        }, 2000);
+    }
+
+    function updateSyncStatus(text, color) {
+        syncStatus.innerText = text;
+        syncStatus.style.color = color;
     }
 
     function changeMonth(direction) {
@@ -401,44 +437,50 @@
     }
 
     // --- Cloud Sync Logic ---
-    async function uploadToCloud() {
+    async function uploadToCloud(silent = false) {
         const binId = binIdInput.value.trim();
         const apiKey = apiKeyInput.value.trim();
         
         if(!binId || !apiKey) {
-            showStatus("Error: Bin ID and API Key required", true);
+            if(!silent) showStatus("Error: Bin ID and API Key required", true);
             return;
         }
 
-        showStatus("Uploading... 正在上传...");
+        if(silent) updateSyncStatus("Syncing to Cloud...", "#fff");
+        else showStatus("Uploading... 正在上传...");
         
         try {
             const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-                body: JSON.stringify({ dates: [...selectedDates] })
+                body: JSON.stringify({ dates: [...selectedDates], lastUpdated: new Date().toISOString() })
             });
 
             if(response.ok) {
-                showStatus("Success! Uploaded to cloud. 上传成功!");
+                if(silent) {
+                    updateSyncStatus("All changes saved", "#00ff00");
+                    setTimeout(() => updateSyncStatus("Ready", "#555"), 3000);
+                } else {
+                    showStatus("Success! Uploaded. 上传成功!");
+                }
             } else {
-                showStatus("Upload failed. Check ID/Key.", true);
+                if(silent) updateSyncStatus("Sync Failed", "#E82127");
+                else showStatus("Upload failed.", true);
             }
         } catch (error) {
-            showStatus("Network error.", true);
+            if(silent) updateSyncStatus("Network Error", "#E82127");
+            else showStatus("Network error.", true);
         }
     }
 
-    async function downloadFromCloud() {
+    async function downloadFromCloud(silent = false) {
         const binId = binIdInput.value.trim();
         const apiKey = apiKeyInput.value.trim();
         
-        if(!binId || !apiKey) {
-            showStatus("Error: Bin ID and API Key required", true);
-            return;
-        }
+        if(!binId || !apiKey) return;
 
-        showStatus("Downloading... 正在下载...");
+        if(!silent) showStatus("Downloading... 正在下载...");
+        if(silent) updateSyncStatus("Checking Cloud...", "#fff");
         
         try {
             const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
@@ -449,25 +491,30 @@
             if(response.ok) {
                 const json = await response.json();
                 const cloudDates = json.record.dates || []; 
+                
+                // 简单覆盖策略 (Last Write Wins)
                 selectedDates = new Set(cloudDates);
                 saveLocalData();
                 renderCalendar();
                 updateDashboard();
-                showStatus("Synced! Updated from cloud. 同步成功!");
+                
+                if(!silent) showStatus("Synced! Updated from cloud.");
+                if(silent) {
+                    updateSyncStatus("Up to date", "#00ff00");
+                    setTimeout(() => updateSyncStatus("Ready", "#555"), 3000);
+                }
             } else {
-                showStatus("Download failed. Check ID/Key.", true);
+                if(!silent) showStatus("Download failed.", true);
             }
         } catch (error) {
-            showStatus("Network error.", true);
+            if(!silent) showStatus("Network error.", true);
         }
     }
 
     function showStatus(msg, isError = false) {
         statusMsg.innerText = msg;
         statusMsg.style.color = isError ? '#E82127' : '#00ff00';
-        setTimeout(() => {
-            statusMsg.style.color = '#888';
-        }, 5000);
+        setTimeout(() => { statusMsg.style.color = '#888'; }, 5000);
     }
 
     function formatDateISO(date) {
