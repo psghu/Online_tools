@@ -25,83 +25,127 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 15px; /* 减小整体边距 */
         }
 
-        .container { width: 100%; max-width: 800px; }
+        .container { width: 100%; max-width: 600px; } /* 限制最大宽度，优化手机视觉 */
 
         header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-transform: uppercase;
             letter-spacing: 2px;
             font-weight: 600;
-            margin-top: 10px;
             font-size: 14px;
+            opacity: 0.8;
         }
 
-        /* --- Dashboard --- */
+        /* --- Dashboard (精致版) --- */
         .dashboard {
             background-color: var(--tesla-gray);
             border-radius: 12px;
-            padding: 25px;
+            padding: 15px 20px; /* 减小内边距 */
             margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border: 1px solid #333;
         }
 
-        .controls { display: flex; gap: 15px; flex-direction: column; }
-        .date-input-group { display: flex; flex-direction: column; }
+        /* 输入框区域 */
+        .controls { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            margin-bottom: 15px;
+        }
+
+        .date-input-group { 
+            position: relative;
+        }
 
         .date-input-group label {
             font-size: 10px;
             color: var(--tesla-text-dim);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 5px;
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            display: none; /* 手机版为了省空间，我们将 Label 隐藏或整合 */
+        }
+        
+        /* 显示在输入框上方的微型 Label */
+        .input-label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 4px;
+            display: block;
+            text-transform: uppercase;
         }
 
         input[type="date"] {
-            background: transparent;
-            border: 1px solid #444;
+            background: #1a1a1a; /*稍微深一点的背景*/
+            border: 1px solid #333;
             color: white;
-            padding: 12px;
+            padding: 8px 12px; /* 关键调整：减小高度 */
             border-radius: 6px;
             font-family: var(--font-stack);
-            font-size: 16px; /* 防止iOS放大 */
+            font-size: 14px; /* 字体稍微调小，看起来更精致 */
             width: 100%;
             color-scheme: dark;
+            height: 38px; /* 强制固定高度，防止过高 */
         }
-        input[type="date"]:focus { border-color: var(--tesla-red); }
+        input[type="date"]:focus { border-color: var(--tesla-text-dim); }
 
-        .stat-card { text-align: right; min-width: 150px; }
+        /* 统计数据区域 (新布局) */
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+            margin-top: 5px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-item.right {
+            text-align: right;
+            align-items: flex-end;
+        }
 
         .stat-value {
-            font-size: 48px;
-            font-weight: 300;
-            color: var(--tesla-red);
+            font-size: 32px; /* 稍微缩小数字，更协调 */
+            font-weight: 400;
             line-height: 1;
-            text-shadow: 0 0 20px rgba(232, 33, 39, 0.4);
+        }
+        
+        .stat-value.red {
+            color: var(--tesla-red);
+            text-shadow: 0 0 15px rgba(232, 33, 39, 0.3);
+        }
+        
+        .stat-value.white {
+            color: #fff;
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: 10px;
             color: var(--tesla-text-dim);
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-top: 5px;
-            line-height: 1.4;
+            letter-spacing: 1px;
+            margin-top: 4px;
         }
 
         /* --- Calendar --- */
         .calendar-wrapper {
             background-color: var(--tesla-dark);
             border-radius: 12px;
-            padding: 20px;
+            padding: 15px;
             border: 1px solid #333;
         }
 
@@ -113,24 +157,20 @@
         }
 
         .month-display {
-            font-size: 16px;
-            font-weight: 500;
-            letter-spacing: 1px;
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.2;
         }
-        
-        .month-sub {
-            font-size: 0.8em; 
-            color: #888; 
-            margin-left: 8px;
-        }
+        .month-en { font-size: 16px; font-weight: 500; letter-spacing: 0.5px; }
+        .month-cn { font-size: 12px; color: #666; }
 
         .nav-btn {
             background: transparent;
-            border: 1px solid #444;
+            border: 1px solid #333;
             color: white;
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
@@ -142,14 +182,14 @@
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 8px; /* 默认间距 */
+            gap: 4px; /* 紧凑间距 */
         }
 
         .weekday {
             text-align: center;
-            font-size: 12px;
-            color: var(--tesla-text-dim);
-            padding: 10px 0;
+            font-size: 10px;
+            color: #555;
+            padding: 8px 0;
             text-transform: uppercase;
         }
 
@@ -158,89 +198,28 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
-            border-radius: 6px;
+            border-radius: 4px;
             user-select: none;
             background-color: #1a1a1a;
+            color: #ccc;
         }
         
         .day.active {
             background-color: var(--tesla-red);
             color: white;
             font-weight: bold;
-            box-shadow: 0 0 10px rgba(232, 33, 39, 0.4);
+            box-shadow: 0 0 8px rgba(232, 33, 39, 0.4);
         }
-        .day.today { border: 1px solid var(--tesla-text); }
+        .day.today { border: 1px solid #666; }
         .day.empty { background-color: transparent; cursor: default; }
 
-        .actions { margin-top: 30px; text-align: center; padding-bottom: 30px; }
+        .actions { margin-top: 20px; text-align: center; padding-bottom: 20px; }
         .btn-text {
             background: transparent; border: none;
-            color: var(--tesla-text-dim); font-size: 12px;
+            color: #555; font-size: 11px;
             cursor: pointer; text-decoration: underline; padding: 10px;
-        }
-
-        /* --- Mobile Optimizations (关键修复) --- */
-        @media (max-width: 600px) {
-            body {
-                padding: 10px; /* 减少整个页面的外边距 */
-            }
-
-            .dashboard {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 20px;
-                padding: 20px;
-            }
-            
-            .controls { width: 100%; }
-            
-            .stat-card {
-                text-align: left;
-                width: 100%;
-                border-top: 1px solid #333;
-                padding-top: 15px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between; /* 让数字和文字左右对齐 */
-            }
-
-            .stat-value { font-size: 42px; }
-            .stat-label { text-align: right; }
-
-            /* 日历部分的手机适配 */
-            .calendar-wrapper {
-                padding: 15px 10px; /* 左右内边距减少，给格子更多空间 */
-            }
-
-            .calendar-grid {
-                gap: 4px; /* 缩小格子之间的间距，防止挤压 */
-            }
-
-            .day {
-                font-size: 12px; /* 缩小日历数字 */
-                border-radius: 4px;
-            }
-
-            .weekday {
-                font-size: 10px;
-                padding: 5px 0;
-            }
-            
-            /* 调整顶部月份显示，让它在手机上自动换行居中 */
-            .month-display {
-                display: flex;
-                flex-direction: column;
-                line-height: 1.2;
-                font-size: 15px;
-            }
-            
-            .month-sub {
-                margin-left: 0;
-                margin-top: 2px;
-                font-size: 12px;
-            }
         }
     </style>
 </head>
@@ -254,17 +233,25 @@
     <div class="dashboard">
         <div class="controls">
             <div class="date-input-group">
-                <label>Start Date 开始日期</label>
+                <span class="input-label">Start Date 开始日期</span>
                 <input type="date" id="startDate">
             </div>
             <div class="date-input-group">
-                <label>End Date 结束日期</label>
+                <span class="input-label">End Date 结束日期</span>
                 <input type="date" id="endDate">
             </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="daysCount">0</div>
-            <div class="stat-label">Days Off<br>选定天数</div>
+
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value white" id="durationCount">0</div>
+                <div class="stat-label">Total Days<br>区间总天数</div>
+            </div>
+            
+            <div class="stat-item right">
+                <div class="stat-value red" id="daysCount">0</div>
+                <div class="stat-label">Days Off<br>选定休假</div>
+            </div>
         </div>
     </div>
 
@@ -279,23 +266,27 @@
     </div>
 
     <div class="actions">
-        <button class="btn-text" onclick="resetData()">Reset All Data 重置所有数据</button>
+        <button class="btn-text" onclick="resetData()">Reset Data 重置数据</button>
     </div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'tesla_leave_data_v3';
+    const STORAGE_KEY = 'tesla_leave_data_v4';
     let currentDate = new Date();
     let selectedDates = new Set();
 
+    // DOM Elements
     const grid = document.getElementById('calendarGrid');
     const monthDisplay = document.getElementById('monthDisplay');
     const daysCountEl = document.getElementById('daysCount');
+    const durationCountEl = document.getElementById('durationCount'); // 新增元素
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
 
     function init() {
         loadData();
+        
+        // 默认选中今年
         if (!startDateInput.value) {
             const startOfYear = new Date(new Date().getFullYear(), 0, 1);
             startDateInput.value = formatDateISO(startOfYear);
@@ -304,8 +295,10 @@
             const endOfYear = new Date(new Date().getFullYear(), 11, 31);
             endDateInput.value = formatDateISO(endOfYear);
         }
+
         renderCalendar();
         updateDashboard();
+
         startDateInput.addEventListener('change', updateDashboard);
         endDateInput.addEventListener('change', updateDashboard);
     }
@@ -317,10 +310,10 @@
         
         const monthNamesEn = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
-        // 优化了手机端的标题显示结构
+        // 标题渲染
         monthDisplay.innerHTML = `
-            <span>${monthNamesEn[month]} ${year}</span>
-            <span class="month-sub">${year}年${month+1}月</span>
+            <span class="month-en">${monthNamesEn[month]} ${year}</span>
+            <span class="month-cn">${year}年${month+1}月</span>
         `;
 
         const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -348,6 +341,7 @@
             const dayEl = document.createElement('div');
             dayEl.className = 'day';
             dayEl.innerText = i;
+            
             const mStr = (month + 1).toString().padStart(2, '0');
             const dStr = i.toString().padStart(2, '0');
             const dateStr = `${year}-${mStr}-${dStr}`;
@@ -355,7 +349,7 @@
             if (selectedDates.has(dateStr)) dayEl.classList.add('active');
             if (dateStr === todayStr) dayEl.classList.add('today');
 
-            // 移动端优化：使用 touchstart 提高响应速度
+            // Touch event optimized
             dayEl.onclick = (e) => {
                 e.preventDefault();
                 toggleDate(dateStr, dayEl);
@@ -392,14 +386,31 @@
     }
 
     function updateDashboard() {
-        const start = startDateInput.value;
-        const end = endDateInput.value;
-        if (!start || !end) return;
-        let count = 0;
+        const startVal = startDateInput.value;
+        const endVal = endDateInput.value;
+
+        if (!startVal || !endVal) return;
+
+        // 1. 计算红点 (选定休假)
+        let holidayCount = 0;
         selectedDates.forEach(dateStr => {
-            if (dateStr >= start && dateStr <= end) count++;
+            if (dateStr >= startVal && dateStr <= endVal) {
+                holidayCount++;
+            }
         });
-        daysCountEl.innerText = count;
+        daysCountEl.innerText = holidayCount;
+
+        // 2. 计算区间总天数 (Duration)
+        const d1 = new Date(startVal);
+        const d2 = new Date(endVal);
+        
+        if (d2 >= d1) {
+            const diffTime = Math.abs(d2 - d1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 包含开始当天
+            durationCountEl.innerText = diffDays;
+        } else {
+            durationCountEl.innerText = "0"; // 结束日期小于开始日期
+        }
     }
 
     function formatDateISO(date) {
@@ -409,7 +420,7 @@
     }
 
     function resetData() {
-        if(confirm("Reset all data? (重置数据?)")) {
+        if(confirm("Clear all history? (清除所有记录?)")) {
             localStorage.removeItem(STORAGE_KEY);
             selectedDates.clear();
             renderCalendar();
