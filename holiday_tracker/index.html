@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Holiady Tracker Cloud</title>
+    <title>Tesla Leave Tracker</title>
     <style>
         :root {
             --tesla-red: #E82127;
             --tesla-dark: #121212;
             --tesla-gray: #222222;
             --tesla-text: #F5F5F5;
-            --tesla-text-dim: #888888;
+            --tesla-text-dim: #AAAAAA; /* 调亮了暗色文字，确保可见 */
             --font-stack: "Gotham", "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
@@ -54,7 +54,7 @@
         
         .input-label {
             font-size: 10px;
-            color: #666;
+            color: #888;
             margin-bottom: 4px;
             display: block;
             text-transform: uppercase;
@@ -102,12 +102,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px; /* 稍微减小头部间距 */
         }
 
         .month-display { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
         .month-en { font-size: 16px; font-weight: 500; letter-spacing: 0.5px; }
-        .month-cn { font-size: 12px; color: #666; }
+        .month-cn { font-size: 12px; color: #666; margin-top: 2px; }
 
         .nav-btn {
             background: transparent; border: 1px solid #333; color: white;
@@ -117,10 +117,22 @@
         .nav-btn:active { background-color: #333; }
 
         .calendar-grid {
-            display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 4px;
+            margin-top: 10px;
         }
 
-        .weekday { text-align: center; font-size: 10px; color: #555; padding: 8px 0; text-transform: uppercase; }
+        /* 星期头样式 - 重点修复 */
+        .weekday { 
+            text-align: center; 
+            font-size: 10px; 
+            color: var(--tesla-text-dim); /* 使用亮灰色 */
+            padding: 8px 0; 
+            text-transform: uppercase; 
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
 
         .day {
             aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
@@ -164,7 +176,6 @@
             font-family: var(--font-stack);
             transition: background 0.2s;
         }
-        
         .btn-primary { background-color: var(--tesla-red); }
         .btn-primary:active { background-color: #b01015; }
         .btn:active { background-color: #444; }
@@ -235,7 +246,7 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'tesla_leave_data_v5';
+    const STORAGE_KEY = 'tesla_leave_data_v6';
     const CONFIG_KEY = 'tesla_cloud_config';
     
     let currentDate = new Date();
@@ -254,7 +265,7 @@
 
     function init() {
         loadLocalData();
-        loadCloudConfig(); // 加载保存的 Key
+        loadCloudConfig();
 
         if (!startDateInput.value) {
             const startOfYear = new Date(new Date().getFullYear(), 0, 1);
@@ -271,7 +282,6 @@
         startDateInput.addEventListener('change', updateDashboard);
         endDateInput.addEventListener('change', updateDashboard);
         
-        // 自动保存云配置输入
         binIdInput.addEventListener('change', saveCloudConfig);
         apiKeyInput.addEventListener('change', saveCloudConfig);
     }
@@ -283,19 +293,34 @@
         const month = currentDate.getMonth();
         const monthNamesEn = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
-        monthDisplay.innerHTML = `<span class="month-en">${monthNamesEn[month]} ${year}</span><span class="month-cn">${year}年${month+1}月</span>`;
+        // 标题修复：分两行显示，避免重复
+        monthDisplay.innerHTML = `
+            <span class="month-en">${monthNamesEn[month]} ${year}</span>
+            <span class="month-cn">${year}年${month+1}月</span>
+        `;
+
+        // 绘制星期头 (SUN - SAT)
+        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        weekdays.forEach(day => {
+            const el = document.createElement('div');
+            el.className = 'weekday';
+            el.innerText = day;
+            grid.appendChild(el);
+        });
 
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
         const daysInMonth = lastDay.getDate();
-        const startingDayIndex = firstDay.getDay();
+        const startingDayIndex = firstDay.getDay(); // 0 = Sun, 1 = Mon...
 
+        // 填充空白
         for (let i = 0; i < startingDayIndex; i++) {
             const el = document.createElement('div'); el.className = 'day empty'; grid.appendChild(el);
         }
 
         const todayStr = formatDateISO(new Date());
         
+        // 填充日期
         for (let i = 1; i <= daysInMonth; i++) {
             const dayEl = document.createElement('div');
             dayEl.className = 'day';
@@ -375,7 +400,7 @@
         }
     }
 
-    // --- Cloud Sync Logic (JsonBin.io) ---
+    // --- Cloud Sync Logic ---
     async function uploadToCloud() {
         const binId = binIdInput.value.trim();
         const apiKey = apiKeyInput.value.trim();
@@ -390,10 +415,7 @@
         try {
             const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': apiKey
-                },
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
                 body: JSON.stringify({ dates: [...selectedDates] })
             });
 
@@ -421,20 +443,15 @@
         try {
             const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
                 method: 'GET',
-                headers: {
-                    'X-Master-Key': apiKey
-                }
+                headers: { 'X-Master-Key': apiKey }
             });
 
             if(response.ok) {
                 const json = await response.json();
-                // JsonBin v3 wraps data in 'record'
                 const cloudDates = json.record.dates || []; 
-                
-                // Merge or Overwrite? Here we Overwrite local with cloud
                 selectedDates = new Set(cloudDates);
-                saveLocalData(); // save to local storage
-                renderCalendar(); // refresh UI
+                saveLocalData();
+                renderCalendar();
                 updateDashboard();
                 showStatus("Synced! Updated from cloud. 同步成功!");
             } else {
@@ -450,7 +467,6 @@
         statusMsg.style.color = isError ? '#E82127' : '#00ff00';
         setTimeout(() => {
             statusMsg.style.color = '#888';
-            // statusMsg.innerText = ''; // optional clear
         }, 5000);
     }
 
@@ -474,4 +490,3 @@
 </script>
 </body>
 </html>
-
