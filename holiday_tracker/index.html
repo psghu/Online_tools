@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Holiday Tracker</title>
+    <title>Tesla Leave Tracker Cloud</title>
     <style>
         :root {
             --tesla-red: #E82127;
@@ -25,10 +25,10 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 15px; /* 减小整体边距 */
+            padding: 15px;
         }
 
-        .container { width: 100%; max-width: 600px; } /* 限制最大宽度，优化手机视觉 */
+        .container { width: 100%; max-width: 600px; }
 
         header {
             text-align: center;
@@ -40,42 +40,18 @@
             opacity: 0.8;
         }
 
-        /* --- Dashboard (精致版) --- */
+        /* --- Dashboard --- */
         .dashboard {
             background-color: var(--tesla-gray);
             border-radius: 12px;
-            padding: 15px 20px; /* 减小内边距 */
+            padding: 15px 20px;
             margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border: 1px solid #333;
         }
 
-        /* 输入框区域 */
-        .controls { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px; 
-            margin-bottom: 15px;
-        }
-
-        .date-input-group { 
-            position: relative;
-        }
-
-        .date-input-group label {
-            font-size: 10px;
-            color: var(--tesla-text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: absolute;
-            top: 50%;
-            left: 12px;
-            transform: translateY(-50%);
-            pointer-events: none;
-            display: none; /* 手机版为了省空间，我们将 Label 隐藏或整合 */
-        }
+        .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
         
-        /* 显示在输入框上方的微型 Label */
         .input-label {
             font-size: 10px;
             color: #666;
@@ -84,21 +60,20 @@
             text-transform: uppercase;
         }
 
-        input[type="date"] {
-            background: #1a1a1a; /*稍微深一点的背景*/
+        input[type="date"], input[type="text"] {
+            background: #1a1a1a;
             border: 1px solid #333;
             color: white;
-            padding: 8px 12px; /* 关键调整：减小高度 */
+            padding: 8px 12px;
             border-radius: 6px;
             font-family: var(--font-stack);
-            font-size: 14px; /* 字体稍微调小，看起来更精致 */
+            font-size: 14px;
             width: 100%;
             color-scheme: dark;
-            height: 38px; /* 强制固定高度，防止过高 */
+            height: 38px;
         }
-        input[type="date"]:focus { border-color: var(--tesla-text-dim); }
+        input:focus { border-color: var(--tesla-text-dim); }
 
-        /* 统计数据区域 (新布局) */
         .stats-row {
             display: flex;
             justify-content: space-between;
@@ -108,38 +83,12 @@
             margin-top: 5px;
         }
 
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .stat-item.right {
-            text-align: right;
-            align-items: flex-end;
-        }
-
-        .stat-value {
-            font-size: 32px; /* 稍微缩小数字，更协调 */
-            font-weight: 400;
-            line-height: 1;
-        }
-        
-        .stat-value.red {
-            color: var(--tesla-red);
-            text-shadow: 0 0 15px rgba(232, 33, 39, 0.3);
-        }
-        
-        .stat-value.white {
-            color: #fff;
-        }
-
-        .stat-label {
-            font-size: 10px;
-            color: var(--tesla-text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 4px;
-        }
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-item.right { text-align: right; align-items: flex-end; }
+        .stat-value { font-size: 32px; line-height: 1; }
+        .stat-value.red { color: var(--tesla-red); text-shadow: 0 0 15px rgba(232, 33, 39, 0.3); }
+        .stat-value.white { color: #fff; }
+        .stat-label { font-size: 10px; color: var(--tesla-text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
 
         /* --- Calendar --- */
         .calendar-wrapper {
@@ -156,79 +105,83 @@
             margin-bottom: 15px;
         }
 
-        .month-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            line-height: 1.2;
-        }
+        .month-display { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
         .month-en { font-size: 16px; font-weight: 500; letter-spacing: 0.5px; }
         .month-cn { font-size: 12px; color: #666; }
 
         .nav-btn {
-            background: transparent;
-            border: 1px solid #333;
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: transparent; border: 1px solid #333; color: white;
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
         }
         .nav-btn:active { background-color: #333; }
 
         .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px; /* 紧凑间距 */
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
         }
 
-        .weekday {
-            text-align: center;
-            font-size: 10px;
-            color: #555;
-            padding: 8px 0;
-            text-transform: uppercase;
-        }
+        .weekday { text-align: center; font-size: 10px; color: #555; padding: 8px 0; text-transform: uppercase; }
 
         .day {
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            cursor: pointer;
-            border-radius: 4px;
-            user-select: none;
-            background-color: #1a1a1a;
-            color: #ccc;
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            font-size: 13px; cursor: pointer; border-radius: 4px; user-select: none;
+            background-color: #1a1a1a; color: #ccc;
         }
-        
-        .day.active {
-            background-color: var(--tesla-red);
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 0 8px rgba(232, 33, 39, 0.4);
-        }
+        .day.active { background-color: var(--tesla-red); color: white; font-weight: bold; box-shadow: 0 0 8px rgba(232, 33, 39, 0.4); }
         .day.today { border: 1px solid #666; }
         .day.empty { background-color: transparent; cursor: default; }
 
-        .actions { margin-top: 20px; text-align: center; padding-bottom: 20px; }
-        .btn-text {
-            background: transparent; border: none;
-            color: #555; font-size: 11px;
-            cursor: pointer; text-decoration: underline; padding: 10px;
+        /* --- Cloud Sync Section --- */
+        .cloud-section {
+            margin-top: 30px;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+            width: 100%;
         }
+        
+        .cloud-title {
+            font-size: 12px; text-transform: uppercase; color: #666; margin-bottom: 10px; text-align: center;
+        }
+
+        .cloud-inputs {
+            display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;
+        }
+        
+        .cloud-buttons {
+            display: flex; gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: var(--font-stack);
+            transition: background 0.2s;
+        }
+        
+        .btn-primary { background-color: var(--tesla-red); }
+        .btn-primary:active { background-color: #b01015; }
+        .btn:active { background-color: #444; }
+
+        .status-msg {
+            text-align: center; font-size: 10px; color: #888; margin-top: 10px; min-height: 14px;
+        }
+
+        .actions { margin-top: 20px; text-align: center; padding-bottom: 20px; }
+        .btn-text { background: transparent; border: none; color: #555; font-size: 11px; cursor: pointer; text-decoration: underline; padding: 10px; }
+
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header>
-        Tesla Leave Tracker
-    </header>
+    <header>Tesla Leave Tracker</header>
 
     <div class="dashboard">
         <div class="controls">
@@ -247,7 +200,6 @@
                 <div class="stat-value white" id="durationCount">0</div>
                 <div class="stat-label">Total Days<br>区间总天数</div>
             </div>
-            
             <div class="stat-item right">
                 <div class="stat-value red" id="daysCount">0</div>
                 <div class="stat-label">Days Off<br>选定休假</div>
@@ -261,17 +213,31 @@
             <div class="month-display" id="monthDisplay"></div>
             <button class="nav-btn" onclick="changeMonth(1)">&#8250;</button>
         </div>
-        
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
+    <div class="cloud-section">
+        <div class="cloud-title">Cloud Sync Settings 云同步设置</div>
+        <div class="cloud-inputs">
+            <input type="text" id="binId" placeholder="Bin ID (e.g. 6740...)">
+            <input type="text" id="apiKey" placeholder="API Key (X-Master-Key)">
+        </div>
+        <div class="cloud-buttons">
+            <button class="btn" onclick="downloadFromCloud()">Download 下载</button>
+            <button class="btn btn-primary" onclick="uploadToCloud()">Upload 上传</button>
+        </div>
+        <div class="status-msg" id="statusMsg">Enter ID & Key to sync</div>
+    </div>
+
     <div class="actions">
-        <button class="btn-text" onclick="resetData()">Reset Data 重置数据</button>
+        <button class="btn-text" onclick="resetData()">Reset Local Data 重置本地数据</button>
     </div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'tesla_leave_data_v4';
+    const STORAGE_KEY = 'tesla_leave_data_v5';
+    const CONFIG_KEY = 'tesla_cloud_config';
+    
     let currentDate = new Date();
     let selectedDates = new Set();
 
@@ -279,14 +245,17 @@
     const grid = document.getElementById('calendarGrid');
     const monthDisplay = document.getElementById('monthDisplay');
     const daysCountEl = document.getElementById('daysCount');
-    const durationCountEl = document.getElementById('durationCount'); // 新增元素
+    const durationCountEl = document.getElementById('durationCount');
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
+    const binIdInput = document.getElementById('binId');
+    const apiKeyInput = document.getElementById('apiKey');
+    const statusMsg = document.getElementById('statusMsg');
 
     function init() {
-        loadData();
-        
-        // 默认选中今年
+        loadLocalData();
+        loadCloudConfig(); // 加载保存的 Key
+
         if (!startDateInput.value) {
             const startOfYear = new Date(new Date().getFullYear(), 0, 1);
             startDateInput.value = formatDateISO(startOfYear);
@@ -301,28 +270,20 @@
 
         startDateInput.addEventListener('change', updateDashboard);
         endDateInput.addEventListener('change', updateDashboard);
+        
+        // 自动保存云配置输入
+        binIdInput.addEventListener('change', saveCloudConfig);
+        apiKeyInput.addEventListener('change', saveCloudConfig);
     }
 
+    // --- Core Calendar Logic ---
     function renderCalendar() {
         grid.innerHTML = '';
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
-        
         const monthNamesEn = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
-        // 标题渲染
-        monthDisplay.innerHTML = `
-            <span class="month-en">${monthNamesEn[month]} ${year}</span>
-            <span class="month-cn">${year}年${month+1}月</span>
-        `;
-
-        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        weekdays.forEach(day => {
-            const el = document.createElement('div');
-            el.className = 'weekday';
-            el.innerText = day;
-            grid.appendChild(el);
-        });
+        monthDisplay.innerHTML = `<span class="month-en">${monthNamesEn[month]} ${year}</span><span class="month-cn">${year}年${month+1}月</span>`;
 
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
@@ -330,9 +291,7 @@
         const startingDayIndex = firstDay.getDay();
 
         for (let i = 0; i < startingDayIndex; i++) {
-            const el = document.createElement('div');
-            el.className = 'day empty';
-            grid.appendChild(el);
+            const el = document.createElement('div'); el.className = 'day empty'; grid.appendChild(el);
         }
 
         const todayStr = formatDateISO(new Date());
@@ -341,7 +300,6 @@
             const dayEl = document.createElement('div');
             dayEl.className = 'day';
             dayEl.innerText = i;
-            
             const mStr = (month + 1).toString().padStart(2, '0');
             const dStr = i.toString().padStart(2, '0');
             const dateStr = `${year}-${mStr}-${dStr}`;
@@ -349,12 +307,7 @@
             if (selectedDates.has(dateStr)) dayEl.classList.add('active');
             if (dateStr === todayStr) dayEl.classList.add('today');
 
-            // Touch event optimized
-            dayEl.onclick = (e) => {
-                e.preventDefault();
-                toggleDate(dateStr, dayEl);
-            };
-
+            dayEl.onclick = (e) => { e.preventDefault(); toggleDate(dateStr, dayEl); };
             grid.appendChild(dayEl);
         }
     }
@@ -367,7 +320,7 @@
             selectedDates.add(dateStr);
             el.classList.add('active');
         }
-        saveData();
+        saveLocalData();
     }
 
     function changeMonth(direction) {
@@ -375,42 +328,130 @@
         renderCalendar();
     }
 
-    function loadData() {
+    // --- Local Storage ---
+    function loadLocalData() {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) selectedDates = new Set(JSON.parse(stored));
     }
 
-    function saveData() {
+    function saveLocalData() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify([...selectedDates]));
         updateDashboard();
+    }
+    
+    function saveCloudConfig() {
+        const config = { binId: binIdInput.value, apiKey: apiKeyInput.value };
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    }
+    
+    function loadCloudConfig() {
+        const stored = localStorage.getItem(CONFIG_KEY);
+        if (stored) {
+            const config = JSON.parse(stored);
+            binIdInput.value = config.binId || '';
+            apiKeyInput.value = config.apiKey || '';
+        }
     }
 
     function updateDashboard() {
         const startVal = startDateInput.value;
         const endVal = endDateInput.value;
-
         if (!startVal || !endVal) return;
 
-        // 1. 计算红点 (选定休假)
         let holidayCount = 0;
         selectedDates.forEach(dateStr => {
-            if (dateStr >= startVal && dateStr <= endVal) {
-                holidayCount++;
-            }
+            if (dateStr >= startVal && dateStr <= endVal) holidayCount++;
         });
         daysCountEl.innerText = holidayCount;
 
-        // 2. 计算区间总天数 (Duration)
         const d1 = new Date(startVal);
         const d2 = new Date(endVal);
-        
         if (d2 >= d1) {
             const diffTime = Math.abs(d2 - d1);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 包含开始当天
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             durationCountEl.innerText = diffDays;
         } else {
-            durationCountEl.innerText = "0"; // 结束日期小于开始日期
+            durationCountEl.innerText = "0";
         }
+    }
+
+    // --- Cloud Sync Logic (JsonBin.io) ---
+    async function uploadToCloud() {
+        const binId = binIdInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+        
+        if(!binId || !apiKey) {
+            showStatus("Error: Bin ID and API Key required", true);
+            return;
+        }
+
+        showStatus("Uploading... 正在上传...");
+        
+        try {
+            const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': apiKey
+                },
+                body: JSON.stringify({ dates: [...selectedDates] })
+            });
+
+            if(response.ok) {
+                showStatus("Success! Uploaded to cloud. 上传成功!");
+            } else {
+                showStatus("Upload failed. Check ID/Key.", true);
+            }
+        } catch (error) {
+            showStatus("Network error.", true);
+        }
+    }
+
+    async function downloadFromCloud() {
+        const binId = binIdInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+        
+        if(!binId || !apiKey) {
+            showStatus("Error: Bin ID and API Key required", true);
+            return;
+        }
+
+        showStatus("Downloading... 正在下载...");
+        
+        try {
+            const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+                method: 'GET',
+                headers: {
+                    'X-Master-Key': apiKey
+                }
+            });
+
+            if(response.ok) {
+                const json = await response.json();
+                // JsonBin v3 wraps data in 'record'
+                const cloudDates = json.record.dates || []; 
+                
+                // Merge or Overwrite? Here we Overwrite local with cloud
+                selectedDates = new Set(cloudDates);
+                saveLocalData(); // save to local storage
+                renderCalendar(); // refresh UI
+                updateDashboard();
+                showStatus("Synced! Updated from cloud. 同步成功!");
+            } else {
+                showStatus("Download failed. Check ID/Key.", true);
+            }
+        } catch (error) {
+            showStatus("Network error.", true);
+        }
+    }
+
+    function showStatus(msg, isError = false) {
+        statusMsg.innerText = msg;
+        statusMsg.style.color = isError ? '#E82127' : '#00ff00';
+        setTimeout(() => {
+            statusMsg.style.color = '#888';
+            // statusMsg.innerText = ''; // optional clear
+        }, 5000);
     }
 
     function formatDateISO(date) {
@@ -420,11 +461,12 @@
     }
 
     function resetData() {
-        if(confirm("Clear all history? (清除所有记录?)")) {
+        if(confirm("Reset Local Data? (重置本地数据?)")) {
             localStorage.removeItem(STORAGE_KEY);
             selectedDates.clear();
             renderCalendar();
             updateDashboard();
+            showStatus("Local data cleared.");
         }
     }
 
@@ -432,4 +474,3 @@
 </script>
 </body>
 </html>
-
