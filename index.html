@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的数字工具箱</title>
+    <style>
+        /* --- Tesla 风格核心设置 --- */
+        :root {
+            --bg-color: #0a0a0a; /* 极深黑色背景 */
+            --card-bg: #1c1c1c;   /* 卡片背景色，比背景稍亮 */
+            --text-color: #ffffff; /* 纯白文字 */
+            --accent-glow: rgba(255, 255, 255, 0.3); /* 悬停时的白色光晕 */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            /* 使用系统自带的现代无衬线字体，类似特斯拉的风格 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 页面标题区域 */
+        header {
+            margin-top: 60px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-weight: 300; /* 细字体更显高级 */
+            font-size: 2.5rem;
+            letter-spacing: 2px; /* 增加字间距 */
+            text-transform: uppercase; /*全部大写（可选）*/
+            margin: 0;
+        }
+
+        p.subtitle {
+            color: #888; /* 副标题用灰色 */
+            margin-top: 10px;
+            font-weight: 300;
+        }
+
+        /* --- 卡片容器布局 (Grid) --- */
+        .container {
+            display: grid;
+            /* 响应式布局：自动适应屏幕，每列最小宽度260px，自动填充 */
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px; /* 卡片之间的间距 */
+            width: 90%;
+            max-width: 1200px; /* 最大宽度限制 */
+            padding-bottom: 60px;
+        }
+
+        /* --- 工具卡片设计 --- */
+        .tool-card {
+            background-color: var(--card-bg);
+            text-decoration: none; /* 去掉链接下划线 */
+            color: var(--text-color);
+            padding: 30px 25px;
+            border-radius: 12px; /* 稍微圆润一点的角 */
+            border: 1px solid #333; /* 极细的深色边框 */
+            
+            /* 核心交互体验动画 */
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start; /* 内容左对齐 */
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 卡片标题样式 */
+        .tool-card h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 500;
+        }
+
+        /* 卡片描述小字样式 */
+        .tool-card span {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        /* --- 悬停效果 (Hover Magic) --- */
+        .tool-card:hover {
+            transform: translateY(-5px); /* 微微上浮 */
+            border-color: #fff; /* 边框变白 */
+            background-color: #262626; /* 背景稍微变亮 */
+            /* 制造出一种冰冷的科技光晕感 */
+            box-shadow: 0 10px 30px -10px var(--accent-glow);
+        }
+        
+        /* 可选：给第一个卡片加一个特斯拉红的角标 (演示用) */
+        /*
+        .tool-card.featured::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            background-color: #e82127; 
+            border-radius: 50%;
+            margin: 15px;
+        }
+        */
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>MY TOOLBOX</h1>
+        <p class="subtitle">极简 · 高效 · 数字助理</p>
+    </header>
+
+    <main class="container">
+        
+        <a href="./btc_ibit_convert/index.html" class="tool-card">
+            <h2>BTC_IBIT 换算器</h2>
+            <span>金融数据快速转换工具</span>
+        </a>
+
+        <a href="#" class="tool-card" onclick="alert('这是一个演示链接')">
+            <h2>颜色提取器 (演示)</h2>
+            <span>从图片中获取色值</span>
+        </a>
+        <a href="#" class="tool-card" onclick="alert('这是一个演示链接')">
+            <h2>番茄工作钟 (演示)</h2>
+            <span>时间管理助手</span>
+        </a>
+
+    </main>
+
+</body>
+</html>
