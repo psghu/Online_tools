@@ -1,471 +1,445 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Merry Christmas Family</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Geometric Christmas Tree</title>
     <style>
         body {
             margin: 0;
-            background-color: #050505;
             overflow: hidden;
-            font-family: 'Arial', sans-serif;
-            touch-action: none; /* 禁止浏览器默认缩放，交给我们自己控制 */
-        }
-        
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
+            background-color: #050505; /* 深色背景衬托金色 */
+            font-family: 'Times New Roman', serif; /* 衬线体 */
         }
 
-        /* 提示文字 */
-        .ui-layer {
+        #title-container {
             position: absolute;
-            bottom: 30px;
+            top: 20px;
             width: 100%;
             text-align: center;
-            color: rgba(255,255,255,0.4);
-            font-size: 14px;
-            pointer-events: none;
             z-index: 10;
+            pointer-events: none;
+            color: #d4af37; /* 土豪金 */
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+            letter-spacing: 5px;
         }
 
-        /* 如果是电脑端，显示一个控制条辅助（因为电脑没法双指捏合） */
-        .desktop-control {
+        h1 {
+            font-size: 3rem;
+            margin: 0;
+            font-weight: lighter;
+        }
+
+        #overlay {
             position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 20;
-            display: none; /* 默认隐藏，JS检测到是非触屏设备时显示 */
-        }
-        
-        button {
-            background: rgba(255, 215, 0, 0.2);
-            border: 1px solid gold;
-            color: gold;
-            padding: 8px 15px;
-            border-radius: 20px;
-            cursor: pointer;
-            backdrop-filter: blur(5px);
-        }
-
-        /* 灯箱（点击照片放大的效果） */
-        .lightbox {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        .lightbox.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .lightbox img {
-            max-width: 90%;
-            max-height: 90%;
-            border: 4px solid #fff;
-            box-shadow: 0 0 50px rgba(255,255,255,0.2);
-            transform: scale(0.8);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .lightbox.active img {
-            transform: scale(1);
-        }
-        .close-btn {
-            position: absolute;
-            top: 20px; right: 20px;
+            flex-direction: column;
             color: white;
-            font-size: 30px;
+            z-index: 100;
             cursor: pointer;
+            transition: opacity 1s;
+        }
+
+        #overlay h2 {
+            font-size: 2rem;
+            border: 1px solid #d4af37;
+            padding: 20px 40px;
+            border-radius: 5px;
+            background: rgba(212, 175, 55, 0.1);
+        }
+        
+        #overlay p {
+            margin-top: 10px;
+            opacity: 0.7;
         }
     </style>
 </head>
 <body>
 
-    <div class="ui-layer">
-        <p>👆 单指拖拽旋转 | ✌️ 双指张开炸裂 | 👇 点击照片放大</p>
+    <div id="title-container">
+        <h1>MERRY CHRISTMAS</h1>
     </div>
 
-    <div class="desktop-control" id="desktopCtrl">
-        <button id="toggleBtn">点击 展开/收起 (电脑版)</button>
+    <div id="overlay">
+        <h2>CLICK TO OPEN GIFT</h2>
+        <p>Turn up your volume 🎵</p>
     </div>
 
-    <canvas id="canvas"></canvas>
+    <audio id="bgm" loop>
+        <source src="https://commondatastorage.googleapis.com/codeskulptor-demos/riceracer_assets/music/win.ogg" type="audio/ogg"> 
+        </audio>
 
-    <div class="lightbox" id="lightbox">
-        <div class="close-btn">×</div>
-        <img id="lightbox-img" src="">
-    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 
-    <script>
-        // === 配置区 ===
-        // 在这里填入你的照片文件名
-        const PHOTO_LIST = [
-            'p1.jpg', 
-            'p2.jpg',
-            'p3.jpg',
-            'p1.jpg', // 可以重复使用
-            'p2.jpg'
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+        // --- 全局变量 ---
+        let scene, camera, renderer, controls;
+        let instancedMesh;
+        let topStar;
+        let totalCount = 2500; // 几何体总数量
+        let dummy = new THREE.Object3D(); // 用于临时计算矩阵
+        
+        // 状态管理
+        const STATE = {
+            TREE: 0,
+            EXPLODE: 1,
+            TEXT: 2
+        };
+        let currentState = STATE.TREE;
+
+        // 存储不同形态的目标位置
+        let positionsTree = [];
+        let positionsExplode = [];
+        let positionsText = [];
+        
+        // 当前位置和旋转数据（用于动画插值）
+        let currentPositions = [];
+        let currentQuaternions = [];
+        let targetPositions = []; // 指向当前状态对应的目标数组
+        
+        // 颜色数组
+        const colors = [];
+        const colorPalette = [
+            new THREE.Color(0xFFD700), // 土豪金
+            new THREE.Color(0xD4AF37), // 暗金
+            new THREE.Color(0xCC0000), // 圣诞红
+            new THREE.Color(0x006400)  // 深绿
         ];
 
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const lightbox = document.getElementById('lightbox');
-        const lightboxImg = document.getElementById('lightbox-img');
-
-        let width, height;
-        let particles = [];
-        let photos = [];
-        
-        // 交互状态
-        let rotationY = 0; // 旋转角度
-        let expandLevel = 0; // 展开程度 0(收起) - 1(完全炸开)
-        let targetExpandLevel = 0;
-        
-        // 触摸控制变量
-        let lastX = 0;
-        let isDragging = false;
-        let initialPinchDist = 0;
-        
-        // 加载图片资源
-        let loadedImages = [];
-        let imagesLoadedCount = 0;
-
-        function preloadImages() {
-            PHOTO_LIST.forEach((src, index) => {
-                const img = new Image();
-                img.src = src;
-                img.onload = () => {
-                    loadedImages.push(img);
-                    imagesLoadedCount++;
-                    if(imagesLoadedCount === PHOTO_LIST.length) init();
-                };
-                // 如果图片加载失败，防止程序卡死，生成一个占位色块
-                img.onerror = () => {
-                   // 简单的错误处理
-                   loadedImages.push(null); 
-                   imagesLoadedCount++;
-                   if(imagesLoadedCount === PHOTO_LIST.length) init();
-                }
-            });
-        }
-
-        function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        // --- 类定义 ---
-
-        class Particle {
-            constructor() {
-                // 树形态的坐标
-                let t = Math.random();
-                let angle = t * Math.PI * 15 + Math.random() * Math.PI * 2;
-                let r = 20 + (1-t) * 200; // 底部宽，顶部窄
-                
-                this.tx = Math.cos(angle) * r;
-                this.ty = -250 + t * 500;
-                this.tz = Math.sin(angle) * r;
-
-                // 爆炸后的坐标 (向外扩散)
-                let expDir = Math.atan2(this.tz, this.tx);
-                let expDist = Math.random() * 400 + 200;
-                this.ex = Math.cos(expDir) * expDist;
-                this.ey = this.ty + (Math.random()-0.5) * 200;
-                this.ez = Math.sin(expDir) * expDist;
-
-                this.color = Math.random() > 0.3 ? `hsla(120, 80%, ${50+Math.random()*30}%, 0.8)` : `hsla(45, 100%, 60%, 0.9)`;
-                this.size = Math.random() * 2 + 1;
-            }
-
-            draw(ctx, sin, cos, centerScale) {
-                // 插值计算当前位置
-                let currX = this.tx + (this.ex - this.tx) * expandLevel;
-                let currY = this.ty + (this.ey - this.ty) * expandLevel;
-                let currZ = this.tz + (this.ez - this.tz) * expandLevel;
-
-                // 旋转
-                let rx = currX * cos - currZ * sin;
-                let rz = currX * sin + currZ * cos;
-
-                // 3D 投影
-                let perspective = 800;
-                let scale = perspective / (perspective + rz + 400);
-
-                if (scale > 0) {
-                    let x2d = width/2 + rx * scale;
-                    let y2d = height/2 + currY * scale;
-                    
-                    ctx.fillStyle = this.color;
-                    ctx.beginPath();
-                    ctx.arc(x2d, y2d, this.size * scale, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                return rz; // 返回深度用于排序
-            }
-        }
-
-        class PhotoItem {
-            constructor(img, index, total) {
-                this.img = img;
-                // 均匀分布在螺旋线上
-                let t = (index + 0.5) / total; 
-                let angle = t * Math.PI * 10; // 5圈
-                let r = 30 + (1-t) * 180; // 贴在树表面
-
-                this.tx = Math.cos(angle) * r;
-                this.ty = -200 + t * 450;
-                this.tz = Math.sin(angle) * r;
-
-                // 爆炸位置：更远
-                this.ex = this.tx * 2.5; 
-                this.ey = this.ty;
-                this.ez = this.tz * 2.5;
-
-                this.w = 60; // 图片基础大小
-                this.h = 80;
-
-                // 点击检测区域
-                this.screenX = 0;
-                this.screenY = 0;
-                this.screenSize = 0;
-            }
-
-            draw(ctx, sin, cos) {
-                if (!this.img) return -9999;
-
-                let currX = this.tx + (this.ex - this.tx) * expandLevel;
-                let currY = this.ty + (this.ey - this.ty) * expandLevel;
-                let currZ = this.tz + (this.ez - this.tz) * expandLevel;
-
-                let rx = currX * cos - currZ * sin;
-                let rz = currX * sin + currZ * cos;
-
-                let perspective = 800;
-                let scale = perspective / (perspective + rz + 400);
-
-                if (scale > 0) {
-                    this.screenSize = Math.max(this.w * scale, 10); // 最小限制
-                    this.screenX = width/2 + rx * scale;
-                    this.screenY = height/2 + currY * scale;
-
-                    // 绘制边框
-                    ctx.save();
-                    ctx.translate(this.screenX, this.screenY);
-                    
-                    // 只有展开时图片才变大变明显，收起时像个装饰品
-                    let photoScale = expandLevel > 0.5 ? 1 : 0.4;
-                    ctx.scale(photoScale, photoScale);
-
-                    // 画照片
-                    ctx.fillStyle = "#fff";
-                    ctx.fillRect(-this.screenSize/2 - 2, -this.screenSize*1.2/2 - 2, this.screenSize+4, this.screenSize*1.2+4);
-                    ctx.drawImage(this.img, -this.screenSize/2, -this.screenSize*1.2/2, this.screenSize, this.screenSize*1.2);
-                    
-                    ctx.restore();
-                }
-                return rz;
-            }
-        }
+        // 初始化
+        init();
 
         function init() {
-            // 生成粒子
-            for (let i = 0; i < 1500; i++) {
-                particles.push(new Particle());
-            }
-            // 生成照片
-            loadedImages.forEach((img, i) => {
-                if(img) photos.push(new PhotoItem(img, i, loadedImages.length));
+            // 1. 场景设置
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050505, 0.02);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 10, 40);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            document.body.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1.0;
+            controls.maxDistance = 100;
+            controls.minDistance = 10;
+
+            // 2. 灯光 (PBR 材质需要好的光照)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffd700, 2);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const pointLight1 = new THREE.PointLight(0xff0000, 2, 50);
+            pointLight1.position.set(-10, 10, 0);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0xffd700, 1, 50);
+            pointLight2.position.set(10, 5, 10);
+            scene.add(pointLight2);
+
+            // 3. 加载字体并生成所有数据
+            loadFontAndCreateAssets();
+
+            // 4. 事件监听
+            window.addEventListener('resize', onWindowResize);
+            
+            // 点击交互逻辑
+            const overlay = document.getElementById('overlay');
+            const bgm = document.getElementById('bgm');
+            
+            overlay.addEventListener('click', () => {
+                overlay.style.opacity = 0;
+                setTimeout(() => overlay.style.display = 'none', 1000);
+                bgm.play().catch(e => console.log("Audio play failed req interaction", e));
+                
+                // 绑定主场景的点击交互
+                document.addEventListener('click', onSceneClick);
+            });
+        }
+
+        function loadFontAndCreateAssets() {
+            const loader = new FontLoader();
+            // 加载标准字体
+            loader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', function (font) {
+                
+                // --- 计算三种状态的位置数据 ---
+                
+                // A. 树形态 (圆锥体分布)
+                for (let i = 0; i < totalCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const height = Math.random() * 20; // 树高
+                    const radius = (20 - height) * 0.4 * Math.random(); // 底部宽，顶部窄
+                    
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    const y = height - 10; // 居中
+                    
+                    positionsTree.push({ x, y, z });
+                    
+                    // 初始化当前位置为树的位置
+                    currentPositions.push(new THREE.Vector3(x, y, z));
+                    currentQuaternions.push(new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random(), Math.random(), Math.random())));
+                    
+                    // 颜色分配
+                    let color;
+                    const isCube = i % 2 === 0; // 一半球一半立方体
+                    if (isCube) {
+                        // 立方体：金色和深绿
+                        color = Math.random() > 0.6 ? colorPalette[3] : colorPalette[0]; 
+                    } else {
+                        // 球体：金色和红色
+                        color = Math.random() > 0.5 ? colorPalette[2] : colorPalette[0];
+                    }
+                    colors.push(color.r, color.g, color.b);
+                }
+
+                // B. 文字形态 "MERRY CHRISTMAS"
+                const textGeo = new TextGeometry('MERRY\nCHRISTMAS', {
+                    font: font,
+                    size: 2.5,
+                    height: 0.5,
+                    curveSegments: 12,
+                    bevelEnabled: true,
+                    bevelThickness: 0.1,
+                    bevelSize: 0.05,
+                    bevelSegments: 5
+                });
+                
+                textGeo.center();
+                textGeo.computeBoundingBox();
+                
+                // 在文字几何体表面采样点
+                // 简单的采样方法：根据几何体顶点数量分配，如果不够就随机填充
+                if (textGeo.attributes.position) {
+                    const array = textGeo.attributes.position.array;
+                    const count = array.length / 3;
+                    
+                    for (let i = 0; i < totalCount; i++) {
+                        let x, y, z;
+                        if (i < count) {
+                            // 从文字几何体取点
+                            // 为了让点分布更均匀，随机取样比顺序取样好，但这里简化为取模
+                            const index = (i % count) * 3; 
+                            x = array[index];
+                            y = array[index + 1];
+                            z = array[index + 2];
+                        } else {
+                            // 如果粒子多于文字顶点，就在文字周围随机分布
+                            x = (Math.random() - 0.5) * 30;
+                            y = (Math.random() - 0.5) * 10;
+                            z = (Math.random() - 0.5) * 5;
+                        }
+                        positionsText.push({ x, y, z });
+                    }
+                }
+
+                // C. 爆炸形态 (球形扩散)
+                for (let i = 0; i < totalCount; i++) {
+                    const dist = 15 + Math.random() * 20;
+                    const theta = THREE.MathUtils.randFloatSpread(360); 
+                    const phi = THREE.MathUtils.randFloatSpread(360); 
+
+                    const x = dist * Math.sin(theta) * Math.cos(phi);
+                    const y = dist * Math.sin(theta) * Math.sin(phi);
+                    const z = dist * Math.cos(theta);
+                    
+                    positionsExplode.push({ x, y, z });
+                }
+
+                // --- 创建 InstancedMesh ---
+                // 我们混合两种几何体：球体和立方体。
+                // 为了简单高效，我们用一个 InstancedMesh，但其实几何体是一样的。
+                // 技巧：我们创建两个 InstancedMesh，一个负责球，一个负责方块，每人分一半数量。
+                
+                createInstancedMeshes();
+                createTopStar();
+
+                // 开始动画循环
+                targetPositions = positionsTree; // 初始目标
+                animate();
+            });
+        }
+
+        function createInstancedMeshes() {
+            // 材质：高金属感 PBR
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.2, // 光滑
+                metalness: 0.9, // 金属感强
+                envMapIntensity: 1.0
             });
 
-            animate();
+            // 几何体
+            const sphereGeo = new THREE.SphereGeometry(0.25, 16, 16);
+            const cubeGeo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
+
+            // 分两组：0-1249 为球，1250-2499 为方块 (假设total 2500)
+            const countSphere = Math.floor(totalCount / 2);
+            const countCube = totalCount - countSphere;
+
+            instancedMesh = {
+                spheres: new THREE.InstancedMesh(sphereGeo, material, countSphere),
+                cubes: new THREE.InstancedMesh(cubeGeo, material, countCube)
+            };
+
+            // 设置初始矩阵和颜色
+            let sphereIndex = 0;
+            let cubeIndex = 0;
+
+            for (let i = 0; i < totalCount; i++) {
+                dummy.position.set(positionsTree[i].x, positionsTree[i].y, positionsTree[i].z);
+                dummy.updateMatrix();
+
+                const color = new THREE.Color(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+
+                if (i % 2 !== 0) {
+                    // Spheres
+                    instancedMesh.spheres.setMatrixAt(sphereIndex, dummy.matrix);
+                    instancedMesh.spheres.setColorAt(sphereIndex, color);
+                    sphereIndex++;
+                } else {
+                    // Cubes
+                    instancedMesh.cubes.setMatrixAt(cubeIndex, dummy.matrix);
+                    instancedMesh.cubes.setColorAt(cubeIndex, color);
+                    cubeIndex++;
+                }
+            }
+
+            scene.add(instancedMesh.spheres);
+            scene.add(instancedMesh.cubes);
+        }
+
+        function createTopStar() {
+            const geometry = new THREE.OctahedronGeometry(1.5, 0); // 八面体
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffff00,
+                emissive: 0xffaa00,
+                emissiveIntensity: 0.5,
+                metalness: 0.8,
+                roughness: 0.1
+            });
+            topStar = new THREE.Mesh(geometry, material);
+            topStar.position.set(0, 11, 0);
+            
+            // 给星星加个点光源，让它发光
+            const light = new THREE.PointLight(0xffaa00, 2, 20);
+            topStar.add(light);
+            
+            scene.add(topStar);
+        }
+
+        function onSceneClick() {
+            // 状态机切换
+            if (currentState === STATE.TREE) {
+                // 1. 树 -> 扩散
+                currentState = STATE.EXPLODE;
+                targetPositions = positionsExplode;
+                // 隐藏星星
+                if(topStar) topStar.visible = false;
+                controls.autoRotateSpeed = 0.5;
+
+            } else if (currentState === STATE.EXPLODE) {
+                // 2. 扩散 -> 文字
+                currentState = STATE.TEXT;
+                targetPositions = positionsText;
+                controls.autoRotateSpeed = 0; // 看字的时候不转，或者慢点
+                // 调整相机角度正对文字 (可选)
+                
+            } else {
+                // 3. 文字 -> 树
+                currentState = STATE.TREE;
+                targetPositions = positionsTree;
+                if(topStar) setTimeout(() => topStar.visible = true, 1000); // 延迟显示星星
+                controls.autoRotateSpeed = 2.0;
+            }
         }
 
         function animate() {
-            ctx.clearRect(0, 0, width, height);
-            
-            // 缓动更新展开程度
-            expandLevel += (targetExpandLevel - expandLevel) * 0.1;
-            
-            // 自动慢旋转 (如果没有在拖拽)
-            if (!isDragging && Math.abs(expandLevel - 0) < 0.01) {
-                rotationY += 0.003; 
-            }
-
-            let sin = Math.sin(rotationY);
-            let cos = Math.cos(rotationY);
-
-            // 混合排序：粒子和照片都要按 Z 轴深度排序，才能正确遮挡
-            let renderList = [];
-            
-            particles.forEach(p => {
-                renderList.push({ type: 'p', obj: p });
-            });
-            photos.forEach(p => {
-                renderList.push({ type: 'photo', obj: p });
-            });
-
-            // 计算所有物体的 Z 深度用于排序 (由于JS计算量大，这里简化，只在draw里算一次)
-            // 为了性能，我们简化一下：先画粒子，再画照片？不行，会穿模。
-            // 正确做法：全部计算投影后 Z，然后 sort
-            // 这里为了代码简洁，我们在 draw 方法里不做绘制，改为返回 z，然后统一绘制？
-            // 考虑到这是个简单礼物，我们用简单的“先粒子后照片”策略，虽然有轻微穿模但不影响美观，
-            // 或者：把照片永远放在粒子上面（更清晰）。
-            
-            // 方案：先画所有粒子，再画所有照片。
-            // 这样照片永远清晰，不会被树叶挡住，符合“展示照片”的需求。
-            
-            particles.forEach(p => p.draw(ctx, sin, cos));
-            
-            // 对照片进行 Z 排序，保证前面的照片挡住后面的照片
-            let photoRenderList = photos.map(p => {
-                // 预计算 Z
-                let currX = p.tx + (p.ex - p.tx) * expandLevel;
-                let currZ = p.tz + (p.ez - p.tz) * expandLevel;
-                let rz = currX * sin + currZ * cos;
-                return { p, z: rz };
-            });
-            
-            photoRenderList.sort((a, b) => b.z - a.z); // 远到近
-            photoRenderList.forEach(item => item.p.draw(ctx, sin, cos));
-
-            // 画顶部的星星
-            drawStar(width/2, height/2 - 250 - expandLevel*50, 20, 10);
-
             requestAnimationFrame(animate);
-        }
 
-        function drawStar(cx, cy, r1, r2) {
-             // 简单的画星星逻辑，省略细节以免代码太长
-             ctx.save();
-             ctx.beginPath();
-             ctx.translate(cx, cy);
-             ctx.fillStyle = "gold";
-             ctx.shadowBlur = 20;
-             ctx.shadowColor = "gold";
-             ctx.arc(0,0, 8, 0, Math.PI*2);
-             ctx.fill();
-             ctx.restore();
-        }
-
-        // === 交互逻辑 ===
-
-        // 1. 鼠标/触摸 旋转逻辑
-        canvas.addEventListener('mousedown', e => {
-            isDragging = true;
-            lastX = e.clientX;
-        });
-        window.addEventListener('mousemove', e => {
-            if (isDragging) {
-                let delta = e.clientX - lastX;
-                rotationY += delta * 0.005;
-                lastX = e.clientX;
-            }
-        });
-        window.addEventListener('mouseup', () => isDragging = false);
-
-        canvas.addEventListener('touchstart', e => {
-            if (e.touches.length === 1) {
-                isDragging = true;
-                lastX = e.touches[0].clientX;
-            } else if (e.touches.length === 2) {
-                // 双指记录初始距离
-                let dx = e.touches[0].clientX - e.touches[1].clientX;
-                let dy = e.touches[0].clientY - e.touches[1].clientY;
-                initialPinchDist = Math.sqrt(dx*dx + dy*dy);
-            }
-        });
-
-        canvas.addEventListener('touchmove', e => {
-            e.preventDefault(); // 防止滚动屏幕
-            if (e.touches.length === 1 && isDragging) {
-                let delta = e.touches[0].clientX - lastX;
-                rotationY += delta * 0.005;
-                lastX = e.touches[0].clientX;
-            } else if (e.touches.length === 2) {
-                // 双指缩放检测
-                let dx = e.touches[0].clientX - e.touches[1].clientX;
-                let dy = e.touches[0].clientY - e.touches[1].clientY;
-                let currentDist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (currentDist - initialPinchDist > 50) {
-                    targetExpandLevel = 1; // 张开
-                } else if (currentDist - initialPinchDist < -50) {
-                    targetExpandLevel = 0; // 收起
-                }
-            }
-        }, { passive: false });
-        
-        window.addEventListener('touchend', () => isDragging = false);
-
-        // 2. 点击照片逻辑
-        function checkPhotoClick(mx, my) {
-            // 只有展开状态才允许点击照片
-            if (targetExpandLevel < 0.5) return;
-
-            // 倒序检测（先检测最上面的）
-            // 我们需要重新算一次屏幕坐标，或者在draw里存下来。
-            // 这里为了简单，复用 photos 数组，注意此时 photos 没有按 z 排序，可能点到后面的。
-            // 但因为照片散开了，重叠概率低。
+            // 核心动画逻辑：插值移动粒子
+            // 我们不每一帧都重算 target，而是让 current 趋近 target
             
-            for (let p of photos) {
-                // 简单的矩形碰撞或者距离检测
-                // 因为做了 photoScale，点击区域也要相应调整
-                let dist = Math.hypot(mx - p.screenX, my - p.screenY);
-                if (dist < p.screenSize/2 + 10) {
-                    showLightbox(p.img.src);
-                    return true;
+            const lerpSpeed = 0.05; // 移动速度 (0.01 - 0.1)
+            
+            let sphereIndex = 0;
+            let cubeIndex = 0;
+
+            for (let i = 0; i < totalCount; i++) {
+                const currentPos = currentPositions[i];
+                const targetPos = targetPositions[i]; // 根据状态获取 {x,y,z}
+
+                // 计算新位置
+                currentPos.x += (targetPos.x - currentPos.x) * lerpSpeed;
+                currentPos.y += (targetPos.y - currentPos.y) * lerpSpeed;
+                currentPos.z += (targetPos.z - currentPos.z) * lerpSpeed;
+
+                // 更新 dummy 对象
+                dummy.position.set(currentPos.x, currentPos.y, currentPos.z);
+                
+                // 让物体轻微自转
+                dummy.rotation.x += 0.01; 
+                dummy.rotation.y += 0.01;
+                dummy.updateMatrix();
+
+                // 更新 InstancedMesh
+                if (i % 2 !== 0) {
+                    instancedMesh.spheres.setMatrixAt(sphereIndex, dummy.matrix);
+                    sphereIndex++;
+                } else {
+                    instancedMesh.cubes.setMatrixAt(cubeIndex, dummy.matrix);
+                    cubeIndex++;
                 }
             }
-            return false;
-        }
 
-        canvas.addEventListener('click', e => {
-            checkPhotoClick(e.clientX, e.clientY);
-        });
-        canvas.addEventListener('touchstart', e => {
-            if(e.touches.length === 1) {
-                // 稍微延时一点，区分点击和滑动
-                let t = e.touches[0];
-                checkPhotoClick(t.clientX, t.clientY);
+            instancedMesh.spheres.instanceMatrix.needsUpdate = true;
+            instancedMesh.cubes.instanceMatrix.needsUpdate = true;
+
+            // 星星自转
+            if (topStar && topStar.visible) {
+                topStar.rotation.y += 0.02;
             }
-        });
 
-        // 3. 灯箱逻辑
-        function showLightbox(src) {
-            lightboxImg.src = src;
-            lightbox.classList.add('active');
-        }
-        lightbox.addEventListener('click', () => {
-            lightbox.classList.remove('active');
-        });
-        document.querySelector('.close-btn').addEventListener('click', () => {
-            lightbox.classList.remove('active');
-        });
-
-        // 4. 电脑端 fallback 按钮
-        if (!('ontouchstart' in window)) {
-            document.getElementById('desktopCtrl').style.display = 'block';
-            document.getElementById('toggleBtn').addEventListener('click', () => {
-                targetExpandLevel = targetExpandLevel === 0 ? 1 : 0;
-            });
+            controls.update();
+            renderer.render(scene, camera);
         }
 
-        // 开始
-        preloadImages();
-
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
     </script>
 </body>
-
 </html>
