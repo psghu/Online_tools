@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Grand Luxury Tree - Mobile Touch</title>
+    <title>Grand Luxury Tree - Direct Mode</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Times New Roman', serif; touch-action: none; /* 禁止浏览器默认缩放行为 */ }
+        body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Times New Roman', serif; touch-action: none; }
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
         /* UI Overlay */
@@ -19,10 +19,7 @@
             transition: opacity 0.5s ease;
         }
         
-        .ui-hidden {
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
+        .ui-hidden { opacity: 0 !important; pointer-events: none !important; }
 
         /* Loading */
         #loader {
@@ -52,64 +49,29 @@
             font-family: 'Cinzel', 'Times New Roman', serif;
             opacity: 0.9;
             text-align: center;
-            transition: opacity 0.5s ease;
         }
 
-        /* Controls */
+        /* Controls Hint */
         .controls-wrapper {
-            position: absolute; 
-            bottom: 40px;          
-            width: 100%;        
-            pointer-events: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            z-index: 20;
-            transition: opacity 0.5s ease;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .upload-btn {
-            background: rgba(20, 20, 20, 0.6); 
-            border: 1px solid rgba(212, 175, 55, 0.4); 
-            color: #d4af37; 
-            padding: 10px 20px; 
-            cursor: pointer; 
-            text-transform: uppercase; 
-            letter-spacing: 2px; 
-            font-size: 10px;
-            transition: all 0.4s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-            min-width: 100px;
-            border-radius: 20px;
-        }
-        .upload-btn:hover { 
-            background: #d4af37; 
-            color: #000; 
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+            position: absolute; bottom: 40px; width: 100%; pointer-events: auto;
+            display: flex; flex-direction: column; align-items: center; gap: 15px; z-index: 20;
         }
         
         .hint-text {
-            color: rgba(212, 175, 55, 0.7);
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            text-align: center;
-            margin-top: 5px;
-            background: rgba(0,0,0,0.3);
-            padding: 5px 10px;
-            border-radius: 10px;
+            color: rgba(212, 175, 55, 0.7); font-size: 12px; letter-spacing: 1px;
+            text-transform: uppercase; text-align: center;
+            background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 20px;
+            backdrop-filter: blur(5px); border: 1px solid rgba(212, 175, 55, 0.2);
         }
-
-        input[type="file"] { display: none; }
+        
+        /* 音乐控制按钮 (可选) */
+        #music-btn {
+            position: absolute; top: 20px; right: 20px;
+            width: 30px; height: 30px; border: 1px solid #d4af37; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 30; pointer-events: auto;
+            color: #d4af37; font-size: 12px; opacity: 0.6;
+        }
     </style>
     
     <style>
@@ -129,30 +91,19 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <div class="loader-text">Loading Christmas Magic</div>
+        <div class="loader-text">Loading Memories</div>
     </div>
 
     <div id="canvas-container"></div>
 
     <div id="ui-layer">
         <h1>Merry Christmas</h1>
+        <div id="music-btn">♪</div>
         
         <div class="controls-wrapper">
             <div class="hint-text">
-                👆 单指拖动旋转视角<br>
-                ✌️ 两指捏合/张开 控制聚散
-            </div>
-            
-            <div class="btn-group">
-                <label class="upload-btn">
-                    Select Folder
-                    <input type="file" id="folder-input" webkitdirectory directory multiple>
-                </label>
-                
-                <label class="upload-btn">
-                    Select Files
-                    <input type="file" id="file-input" multiple accept="image/*">
-                </label>
+                👆 单指旋转 | ✌️ 双指聚散<br>
+                (点击屏幕播放音乐)
             </div>
         </div>
     </div>
@@ -165,6 +116,7 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'; 
 
+        // ================= 配置区域 =================
         const CONFIG = {
             colors: {
                 bg: 0x000000, 
@@ -180,17 +132,20 @@
             },
             camera: { z: 50 },
             
+            // 这里设置需要直接调用的本地照片
+            // 只要文件夹里有 photo1.jpg 到 photo5.jpg，就会自动加载
             preload: {
-                autoScanLocal: true,
-                scanCount: 30, 
                 images: [
-                    'https://images.unsplash.com/photo-1543589077-47d81606c1bf?q=80&w=600', 
-                    'https://images.unsplash.com/photo-1576919228236-a097c32a5cd4?q=80&w=600',
-                    'https://images.unsplash.com/photo-1512389142860-9c449e58a543?q=80&w=600', 
-                    'https://images.unsplash.com/photo-1482638588057-dce9509db949?q=80&w=600'
+                    './photo1.jpg',
+                    './photo2.jpg',
+                    './photo3.jpg',
+                    './photo4.jpg',
+                    './photo5.jpg'
+                    // 如果有更多，可以继续加: './photo6.jpg',
                 ]
             }
         };
+        // ===========================================
 
         const STATE = {
             mode: 'TREE', 
@@ -204,8 +159,7 @@
         let particleSystem = []; 
         let photoMeshGroup = new THREE.Group();
         let caneTexture; 
-
-        // 触控交互变量
+        let bgMusic; // 音乐对象
         let touchStartDist = 0;
 
         async function init() {
@@ -216,11 +170,16 @@
             createParticles(); 
             createDust();     
             
+            // 加载照片
             loadPredefinedImages();
+
+            // 初始化音乐
+            initMusic();
 
             setupPostProcessing();
             setupEvents();
             
+            // 移除 Loading
             const loader = document.getElementById('loader');
             loader.style.opacity = 0;
             setTimeout(() => loader.remove(), 800);
@@ -228,33 +187,51 @@
             animate();
         }
 
+        // --- 音乐初始化逻辑 ---
+        function initMusic() {
+            bgMusic = new Audio('./music.mp3'); 
+            bgMusic.loop = true;
+            bgMusic.volume = 0.5;
+            
+            // 移动端浏览器通常禁止自动播放，必须等待第一次用户交互
+            const playStart = () => {
+                bgMusic.play().then(() => {
+                    console.log("Music Playing");
+                    document.getElementById('music-btn').style.opacity = '1';
+                }).catch(e => console.log("等待交互播放"));
+                
+                // 移除一次性监听
+                window.removeEventListener('click', playStart);
+                window.removeEventListener('touchstart', playStart);
+            };
+
+            window.addEventListener('click', playStart);
+            window.addEventListener('touchstart', playStart);
+
+            // 简单的音乐开关按钮
+            const btn = document.getElementById('music-btn');
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if(bgMusic.paused) bgMusic.play();
+                else bgMusic.pause();
+            });
+        }
+
         function loadPredefinedImages() {
             const loader = new THREE.TextureLoader();
             CONFIG.preload.images.forEach(url => {
                 loader.load(url, 
-                    (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); },
+                    (t) => { 
+                        t.colorSpace = THREE.SRGBColorSpace; 
+                        addPhotoToScene(t); 
+                    },
                     undefined,
-                    (e) => { console.log(`Skipped: ${url}`); }
+                    (e) => { 
+                        // 如果某个文件(如photo5.jpg)不存在，静默失败，不报错
+                        console.log(`未找到图片: ${url} (如果是故意未放满5张请忽略)`); 
+                    }
                 );
             });
-
-            if (CONFIG.preload.autoScanLocal) {
-                for (let i = 1; i <= CONFIG.preload.scanCount; i++) {
-                    const pathJpg = `./images/(${i}).jpg`;
-                    const pathPng = `./images/(${i}).png`;
-                    loader.load(pathJpg, 
-                        (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); },
-                        undefined,
-                        () => {
-                             loader.load(pathPng, 
-                                (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); },
-                                undefined,
-                                () => {}
-                             );
-                        }
-                    );
-                }
-            }
         }
 
         function initThree() {
@@ -273,13 +250,12 @@
             renderer.toneMappingExposure = 2.2; 
             container.appendChild(renderer.domElement);
 
-            // --- 添加 OrbitControls ---
             controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true; // 开启阻尼滑动，更平滑
+            controls.enableDamping = true; 
             controls.dampingFactor = 0.05;
-            controls.enableZoom = false;   // 禁用控制器缩放，因为我们要用双指控制聚散
-            controls.enablePan = false;    // 禁用平移，保持树在中心
-            controls.autoRotate = true;    // 开启自动旋转
+            controls.enableZoom = false;   
+            controls.enablePan = false;    
+            controls.autoRotate = true;    
             controls.autoRotateSpeed = 1.0; 
 
             mainGroup = new THREE.Group();
@@ -404,7 +380,6 @@
                 else if (mode === 'FOCUS') {
                     if (this.mesh === focusTargetMesh) {
                         const desiredWorldPos = new THREE.Vector3(0, 2, 35);
-                        // 修正：在 OrbitControls 模式下，直接看向相机
                         const invMatrix = new THREE.Matrix4().copy(mainGroup.matrixWorld).invert();
                         target = desiredWorldPos.applyMatrix4(invMatrix);
                     } else {
@@ -415,14 +390,13 @@
                 const lerpSpeed = (mode === 'FOCUS' && this.mesh === focusTargetMesh) ? 5.0 : 2.0; 
                 this.mesh.position.lerp(target, lerpSpeed * dt);
 
-                // 旋转逻辑
+                // 旋转
                 if (mode === 'SCATTER') {
                     this.mesh.rotation.x += this.spinSpeed.x * dt;
                     this.mesh.rotation.y += this.spinSpeed.y * dt;
                     this.mesh.rotation.z += this.spinSpeed.z * dt; 
                 } else if (mode === 'TREE') {
                     if (this.type === 'PHOTO') {
-                        // 照片始终面朝外或朝向相机
                         this.mesh.lookAt(0, this.mesh.position.y, 0);
                         this.mesh.rotateY(Math.PI);
                     } else {
@@ -620,22 +594,6 @@
 
             updatePhotoLayout();
         }
-        
-        function handleImageUpload(e) {
-            const files = e.target.files;
-            if(!files.length) return;
-            Array.from(files).forEach(f => {
-                if (!f.type.startsWith('image/')) return;
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    new THREE.TextureLoader().load(ev.target.result, (t) => {
-                        t.colorSpace = THREE.SRGBColorSpace;
-                        addPhotoToScene(t);
-                    });
-                }
-                reader.readAsDataURL(f);
-            });
-        }
 
         function setupEvents() {
             window.addEventListener('resize', () => {
@@ -645,52 +603,42 @@
                 composer.setSize(window.innerWidth, window.innerHeight);
             });
             
-            document.getElementById('file-input').addEventListener('change', handleImageUpload);
-            document.getElementById('folder-input').addEventListener('change', handleImageUpload);
-            
             window.addEventListener('keydown', (e) => {
                 if (e.key.toLowerCase() === 'h') {
                     const controls = document.querySelector('.controls-wrapper');
+                    const btn = document.getElementById('music-btn');
+                    const h1 = document.querySelector('h1');
                     if (controls) controls.classList.toggle('ui-hidden');
+                    if (btn) btn.classList.toggle('ui-hidden');
+                    if (h1) h1.classList.toggle('ui-hidden');
                 }
             });
 
-            // --- 核心触控逻辑 ---
+            // 触控逻辑
             const el = renderer.domElement;
-            
-            // 触摸开始
             el.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 2) {
-                    // 记录两指初始距离
                     const dx = e.touches[0].pageX - e.touches[1].pageX;
                     const dy = e.touches[0].pageY - e.touches[1].pageY;
                     touchStartDist = Math.hypot(dx, dy);
                 } else {
-                    // 如果单指触摸，暂停自动旋转，方便用户拖动
                     controls.autoRotate = false;
                 }
             }, { passive: false });
 
-            // 触摸移动
             el.addEventListener('touchmove', (e) => {
                 if (e.touches.length === 2) {
-                    e.preventDefault(); // 阻止默认的页面缩放
-
+                    e.preventDefault(); 
                     const dx = e.touches[0].pageX - e.touches[1].pageX;
                     const dy = e.touches[0].pageY - e.touches[1].pageY;
                     const currentDist = Math.hypot(dx, dy);
 
-                    // 阈值判断：避免微小抖动误触
                     if (touchStartDist > 0) {
                         const ratio = currentDist / touchStartDist;
-                        
-                        // 拉开距离 > 1.1倍 -> 分散
                         if (ratio > 1.1 && STATE.mode !== 'SCATTER') {
                             STATE.mode = 'SCATTER';
                             STATE.focusTarget = null;
-                        } 
-                        // 缩小距离 < 0.9倍 -> 聚拢 (树)
-                        else if (ratio < 0.9 && STATE.mode !== 'TREE') {
+                        } else if (ratio < 0.9 && STATE.mode !== 'TREE') {
                             STATE.mode = 'TREE';
                             STATE.focusTarget = null;
                         }
@@ -698,25 +646,16 @@
                 }
             }, { passive: false });
 
-            // 触摸结束
             el.addEventListener('touchend', (e) => {
-                if (e.touches.length < 2) {
-                    touchStartDist = 0;
-                }
-                // 如果所有手指离开，恢复自动旋转
-                if (e.touches.length === 0) {
-                    controls.autoRotate = true;
-                }
+                if (e.touches.length < 2) touchStartDist = 0;
+                if (e.touches.length === 0) controls.autoRotate = true;
             });
         }
 
         function animate() {
             requestAnimationFrame(animate);
             const dt = clock.getDelta();
-
-            // 由 OrbitControls 接管视角旋转
             controls.update();
-
             particleSystem.forEach(p => p.update(dt, STATE.mode, STATE.focusTarget));
             composer.render();
         }
