@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Grand Luxury Tree - Interactive</title>
+    <title>Christmas Tree - Smart Loader</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Times New Roman', serif; touch-action: none; }
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
@@ -19,6 +19,19 @@
             transition: opacity 0.5s ease;
         }
         
+        /* 调试日志面板 - 帮助您查看图片状态 */
+        #debug-panel {
+            position: absolute; top: 10px; left: 10px; 
+            background: rgba(0, 0, 0, 0.7); border: 1px solid #d4af37;
+            color: #fff; font-family: monospace; font-size: 10px;
+            padding: 10px; pointer-events: auto; z-index: 999;
+            max-height: 200px; overflow-y: auto; text-align: left;
+            min-width: 150px;
+        }
+        .log-success { color: #55ff55; }
+        .log-error { color: #ff5555; }
+        .log-info { color: #aaa; }
+
         .ui-hidden { opacity: 0 !important; pointer-events: none !important; }
 
         /* Loading */
@@ -51,7 +64,6 @@
             text-align: center;
         }
 
-        /* Controls Hint */
         .controls-wrapper {
             position: absolute; bottom: 40px; width: 100%; pointer-events: auto;
             display: flex; flex-direction: column; align-items: center; gap: 15px; z-index: 20;
@@ -64,7 +76,6 @@
             backdrop-filter: blur(5px); border: 1px solid rgba(212, 175, 55, 0.2);
         }
         
-        /* 音乐控制按钮 */
         #music-btn {
             position: absolute; top: 20px; right: 20px;
             width: 30px; height: 30px; border: 1px solid #d4af37; border-radius: 50%;
@@ -93,7 +104,12 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <div class="loader-text">Loading Memories</div>
+        <div class="loader-text">Configuring...</div>
+    </div>
+
+    <div id="debug-panel">
+        <div>System Log:</div>
+        <hr style="border:0; border-top:1px solid #444; margin:5px 0;">
     </div>
 
     <div id="canvas-container"></div>
@@ -118,7 +134,6 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'; 
 
-        // ================= 配置区域 =================
         const CONFIG = {
             colors: {
                 bg: 0x000000, 
@@ -133,24 +148,14 @@
                 treeRadius: 8    
             },
             camera: { z: 50 },
-            
-            // 照片预加载列表
-            preload: {
-                images: [
-                    './photo1.jpg',
-                    './photo2.jpg',
-                    './photo3.jpg',
-                    './photo4.jpg',
-                    './photo5.jpg'
-                ]
-            }
+            // 扫描范围：photo1 到 photo10
+            scanRange: 10 
         };
-        // ===========================================
 
         const STATE = {
-            mode: 'TREE',      // TREE, SCATTER, FOCUS
+            mode: 'TREE',
             focusIndex: -1, 
-            focusTarget: null  // 当前正在查看的 Mesh 对象
+            focusTarget: null
         };
 
         let scene, camera, renderer, composer, controls;
@@ -162,9 +167,18 @@
         let bgMusic; 
         let touchStartDist = 0;
         
-        // 射线检测相关变量（用于点击交互）
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
+
+        // 调试辅助函数
+        function log(msg, type='info') {
+            const panel = document.getElementById('debug-panel');
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            if(type==='success') div.className = 'log-success';
+            if(type==='error') div.className = 'log-error';
+            panel.appendChild(div);
+        }
 
         async function init() {
             initThree();
@@ -174,9 +188,10 @@
             createParticles(); 
             createDust();     
             
-            loadPredefinedImages();
+            // 智能加载照片
+            await loadSmartImages();
+            
             initMusic();
-
             setupPostProcessing();
             setupEvents();
             
@@ -187,6 +202,44 @@
             animate();
         }
 
+        // --- 核心修改：智能加载逻辑 ---
+        async function loadSmartImages() {
+            const loader = new THREE.TextureLoader();
+            log('Starting Smart Scan...');
+
+            // 定义尝试的后缀名
+            const extensions = ['.jpg', '.png', '.jpeg', '.JPG', '.PNG'];
+            
+            // 我们尝试加载 photo1 到 photo10
+            for (let i = 1; i <= CONFIG.scanRange; i++) {
+                let loaded = false;
+                
+                // 对每个数字，依次尝试不同的后缀名
+                for (const ext of extensions) {
+                    if (loaded) break; // 如果已经用某种后缀加载成功，就跳过其他后缀
+                    
+                    const filename = `./photo${i}${ext}`;
+                    try {
+                        // 使用 await 等待加载结果
+                        const texture = await loader.loadAsync(filename);
+                        texture.colorSpace = THREE.SRGBColorSpace;
+                        addPhotoToScene(texture);
+                        log(`Loaded: photo${i}${ext}`, 'success');
+                        loaded = true; 
+                    } catch (e) {
+                        // 某个后缀失败是正常的，静默处理
+                    }
+                }
+
+                if (!loaded) {
+                    // 如果尝试了所有后缀都失败，才认为是真的没有这张图
+                    // 只针对前3张报错，避免刷屏
+                    if (i <= 3) log(`Missing: photo${i} (Checked all formats)`, 'error');
+                }
+            }
+            log('Scan Complete.');
+        }
+
         function initMusic() {
             bgMusic = new Audio('./music.mp3'); 
             bgMusic.loop = true;
@@ -194,9 +247,9 @@
             
             const playStart = () => {
                 bgMusic.play().then(() => {
-                    console.log("Music Playing");
+                    log('Music Playing', 'success');
                     document.getElementById('music-btn').style.opacity = '1';
-                }).catch(e => console.log("等待交互播放"));
+                }).catch(e => log('Click to play music'));
                 window.removeEventListener('click', playStart);
                 window.removeEventListener('touchstart', playStart);
             };
@@ -209,20 +262,6 @@
                 e.stopPropagation();
                 if(bgMusic.paused) bgMusic.play();
                 else bgMusic.pause();
-            });
-        }
-
-        function loadPredefinedImages() {
-            const loader = new THREE.TextureLoader();
-            CONFIG.preload.images.forEach(url => {
-                loader.load(url, 
-                    (t) => { 
-                        t.colorSpace = THREE.SRGBColorSpace; 
-                        addPhotoToScene(t); 
-                    },
-                    undefined,
-                    (e) => { console.log(`图片未找到: ${url} (忽略)`); }
-                );
             });
         }
 
@@ -373,18 +412,14 @@
                 } 
                 else if (mode === 'FOCUS') {
                     if (this.mesh === focusTargetMesh) {
-                        // 核心修改：计算相机正前方的世界坐标
-                        // 这样无论相机转到哪里，照片都会飞到相机眼前
-                        const distanceInFront = 12; // 距离相机 12 单位
+                        const distanceInFront = 12; 
                         const offset = new THREE.Vector3(0, 0, -distanceInFront);
                         offset.applyQuaternion(camera.quaternion);
                         const targetWorldPos = camera.position.clone().add(offset);
                         
-                        // 转换为 mainGroup 的局部坐标
                         target = targetWorldPos.clone();
                         mainGroup.worldToLocal(target);
                     } else {
-                        // 其他物体稍微散开一点，或者保持原位
                         target = this.posScatter;
                     }
                 }
@@ -392,18 +427,14 @@
                 const lerpSpeed = (mode === 'FOCUS' && this.mesh === focusTargetMesh) ? 4.0 : 2.0; 
                 this.mesh.position.lerp(target, lerpSpeed * dt);
 
-                // 旋转逻辑
                 if (mode === 'SCATTER') {
                     this.mesh.rotation.x += this.spinSpeed.x * dt;
                     this.mesh.rotation.y += this.spinSpeed.y * dt;
                     this.mesh.rotation.z += this.spinSpeed.z * dt; 
                 } else if (mode === 'FOCUS' && this.mesh === focusTargetMesh) {
-                    // 放大时，始终面朝相机
                     this.mesh.lookAt(camera.position);
                 } else if (mode === 'TREE') {
                     if (this.type === 'PHOTO') {
-                        // 树模式下，照片背靠树心，面向外
-                        // 我们让它看向 (0,y,0)，然后旋转180度
                         this.mesh.lookAt(0, this.mesh.position.y, 0);
                         this.mesh.rotateY(Math.PI);
                     } else {
@@ -413,7 +444,6 @@
                     }
                 }
                 
-                // 缩放逻辑
                 let s = this.baseScale;
                 if (this.isDust) {
                     s = this.baseScale * (0.8 + 0.4 * Math.sin(clock.elapsedTime * 4 + this.mesh.id));
@@ -421,8 +451,8 @@
                 } else if (mode === 'SCATTER' && this.type === 'PHOTO') {
                     s = this.baseScale * 2.5; 
                 } else if (mode === 'FOCUS') {
-                    if (this.mesh === focusTargetMesh) s = 5.0; // 放大倍数
-                    else s = 0; // 聚焦时隐藏其他物体，或设为 this.baseScale * 0.1 变小
+                    if (this.mesh === focusTargetMesh) s = 5.0; 
+                    else s = 0; 
                 }
                 
                 this.mesh.scale.lerp(new THREE.Vector3(s,s,s), 4*dt);
@@ -600,37 +630,27 @@
         }
 
         function onMouseClick(event) {
-            // 计算鼠标位置 (归一化设备坐标)
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            // 通过摄像机和鼠标位置更新射线
             raycaster.setFromCamera(mouse, camera);
 
-            // 计算物体和射线的焦点
-            // recursive: true 确保能检测到 Group 里的 Mesh
             const intersects = raycaster.intersectObject(photoMeshGroup, true);
 
             if (intersects.length > 0) {
-                // 找到了被点击的物体
-                // 因为我们点击的是 Mesh (照片平面或相框)，我们需要找到它所属的 Group (即粒子对象)
                 let target = intersects[0].object;
                 while (target.parent && target.parent !== photoMeshGroup) {
                     target = target.parent;
                 }
-
-                // 逻辑：如果当前已经聚焦在这个物体上，则取消聚焦；否则聚焦它
                 if (STATE.mode === 'FOCUS' && STATE.focusTarget === target) {
                     STATE.mode = 'TREE';
                     STATE.focusTarget = null;
-                    controls.autoRotate = true; // 恢复自动旋转
+                    controls.autoRotate = true; 
                 } else {
                     STATE.mode = 'FOCUS';
                     STATE.focusTarget = target;
-                    controls.autoRotate = false; // 聚焦时停止自动旋转
+                    controls.autoRotate = false; 
                 }
             } else {
-                // 点击了空白处，如果当前在聚焦模式，则退出
                 if (STATE.mode === 'FOCUS') {
                     STATE.mode = 'TREE';
                     STATE.focusTarget = null;
@@ -652,16 +672,16 @@
                     const controls = document.querySelector('.controls-wrapper');
                     const btn = document.getElementById('music-btn');
                     const h1 = document.querySelector('h1');
+                    const debug = document.getElementById('debug-panel');
                     if (controls) controls.classList.toggle('ui-hidden');
                     if (btn) btn.classList.toggle('ui-hidden');
                     if (h1) h1.classList.toggle('ui-hidden');
+                    if (debug) debug.classList.toggle('ui-hidden');
                 }
             });
 
-            // 新增：点击事件监听
             window.addEventListener('click', onMouseClick);
 
-            // 触控逻辑
             const el = renderer.domElement;
             el.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 2) {
@@ -669,7 +689,6 @@
                     const dy = e.touches[0].pageY - e.touches[1].pageY;
                     touchStartDist = Math.hypot(dx, dy);
                 } else {
-                    // 单指触摸时暂时关闭自动旋转
                     controls.autoRotate = false;
                 }
             }, { passive: false });
@@ -696,7 +715,6 @@
 
             el.addEventListener('touchend', (e) => {
                 if (e.touches.length < 2) touchStartDist = 0;
-                // 如果没有在聚焦模式，且手指都离开了，恢复自动旋转
                 if (e.touches.length === 0 && STATE.mode !== 'FOCUS') {
                     controls.autoRotate = true;
                 }
