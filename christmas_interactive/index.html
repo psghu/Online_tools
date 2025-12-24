@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Grand Luxury Tree - Code Music</title>
+    <title>Grand Luxury Tree - Final</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Times New Roman', serif; touch-action: none; }
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
@@ -19,32 +19,27 @@
             transition: opacity 0.5s ease;
         }
         
-        /* 调试日志面板 */
-        #debug-panel {
-            position: absolute; top: 10px; left: 10px; 
-            background: rgba(0, 0, 0, 0.7); border: 1px solid #d4af37;
-            color: #fff; font-family: monospace; font-size: 10px;
-            padding: 10px; pointer-events: auto; z-index: 999;
-            max-height: 200px; overflow-y: auto; text-align: left;
-            min-width: 150px;
-            display: none; /* 默认隐藏，按H显示 */
-        }
-        .log-success { color: #55ff55; }
-        .log-error { color: #ff5555; }
-
         .ui-hidden { opacity: 0 !important; pointer-events: none !important; }
 
-        /* Loading */
+        /* Loading Screen */
         #loader {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 100;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 0.8s ease-out;
+            pointer-events: none; /* 允许点击穿透，方便触发音乐 */
         }
         .loader-text {
             color: #d4af37; font-size: 14px; letter-spacing: 4px; margin-top: 20px;
             text-transform: uppercase; font-weight: 100;
+            text-align: center;
+            min-height: 20px;
         }
+        /* 新增：用于显示具体文件进度的副标题 */
+        .loader-subtext {
+            color: #666; font-size: 10px; margin-top: 8px; font-family: monospace;
+        }
+
         .spinner {
             width: 40px; height: 40px; border: 1px solid rgba(212, 175, 55, 0.2); 
             border-top: 1px solid #d4af37; border-radius: 50%; 
@@ -52,6 +47,7 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* Typography */
         h1 { 
             color: #fceea7; font-size: 42px; margin: 0; font-weight: 400; 
             letter-spacing: 4px; 
@@ -84,7 +80,11 @@
             transition: all 0.3s;
         }
         #music-btn:active { transform: scale(0.9); }
-        .music-playing { box-shadow: 0 0 15px #d4af37; opacity: 1 !important; }
+        .music-playing { 
+            box-shadow: 0 0 15px #d4af37; 
+            opacity: 1 !important; 
+            background: rgba(212, 175, 55, 0.1);
+        }
     </style>
     
     <style>
@@ -104,10 +104,9 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <div class="loader-text">Loading Christmas Magic</div>
+        <div class="loader-text" id="loader-msg">Initializing...</div>
+        <div class="loader-subtext" id="loader-log"></div>
     </div>
-
-    <div id="debug-panel"></div>
 
     <div id="canvas-container"></div>
 
@@ -118,7 +117,7 @@
         <div class="controls-wrapper">
             <div class="hint-text">
                 👆 单指旋转 | ✌️ 双指聚散<br>
-                👋 点击相片放大 | ♪ 点击播放音乐
+                👋 点击相片放大 | (点击屏幕开启音乐)
             </div>
         </div>
     </div>
@@ -131,26 +130,21 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'; 
 
-        // --- 核心修改：内置音乐合成器 ---
+        // --- 音乐合成器 ---
         const JingleBellsSynth = {
             ctx: null,
             isPlaying: false,
-            tempo: 200, // 速度，越小越快
+            tempo: 200, 
             
-            // 音符频率表
             notes: {
                 'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
                 'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00,
                 'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99
             },
 
-            // 旋律乐谱: [音符, 节拍数]
             melody: [
-                // Jingle bells, jingle bells, jingle all the way
                 ['E4',1],['E4',1],['E4',2],  ['E4',1],['E4',1],['E4',2],  ['E4',1],['G4',1],['C4',1.5],['D4',0.5],['E4',4],
-                // Oh what fun it is to ride in a one horse open sleigh
                 ['F4',1],['F4',1],['F4',1.5],['F4',0.5], ['F4',1],['E4',1],['E4',1],['E4',0.5],['E4',0.5], ['E4',1],['D4',1],['D4',1],['E4',1], ['D4',2],['G4',2],
-                // Repeat
                 ['E4',1],['E4',1],['E4',2],  ['E4',1],['E4',1],['E4',2],  ['E4',1],['G4',1],['C4',1.5],['D4',0.5],['E4',4],
                 ['F4',1],['F4',1],['F4',1.5],['F4',0.5], ['F4',1],['E4',1],['E4',1],['E4',0.5],['E4',0.5], ['G4',1],['G4',1],['F4',1],['D4',1], ['C4',4]
             ],
@@ -163,18 +157,13 @@
             playNote(freq, time, duration) {
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
-                
-                osc.type = 'triangle'; // 三角波，听起来像简单的电子琴/八音盒
+                osc.type = 'triangle'; 
                 osc.frequency.value = freq;
-                
-                // 包络设置 (ADSR) 让声音更好听
                 gain.gain.setValueAtTime(0, time);
-                gain.gain.linearRampToValueAtTime(0.3, time + 0.05); // Attack
-                gain.gain.exponentialRampToValueAtTime(0.01, time + duration); // Decay
-                
+                gain.gain.linearRampToValueAtTime(0.4, time + 0.05); // 稍微调大音量
+                gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
-                
                 osc.start(time);
                 osc.stop(time + duration);
             },
@@ -182,14 +171,11 @@
             async play() {
                 if (this.isPlaying) return;
                 if (!this.ctx) this.init();
-                
-                // 必须在用户交互后恢复 Context
                 if (this.ctx.state === 'suspended') await this.ctx.resume();
                 
                 this.isPlaying = true;
                 let startTime = this.ctx.currentTime + 0.1;
                 
-                // 循环播放逻辑
                 const playLoop = () => {
                     if(!this.isPlaying) return;
                     let cursor = startTime;
@@ -198,14 +184,10 @@
                         if (note && this.notes[note]) {
                             this.playNote(this.notes[note], cursor, duration);
                         }
-                        cursor += duration; // 下一个音符的开始时间
+                        cursor += duration; 
                     });
-                    
-                    // 计算总时长，用于循环
                     const totalDuration = this.melody.reduce((acc, [_, beat]) => acc + (beat * this.tempo) / 1000, 0);
-                    startTime += totalDuration + 0.5; // 稍微停顿一下再循环
-                    
-                    // 设置下一个循环的定时器
+                    startTime += totalDuration + 0.5; 
                     this.timer = setTimeout(playLoop, totalDuration * 1000 + 500);
                 };
                 
@@ -234,7 +216,7 @@
                 treeRadius: 8    
             },
             camera: { z: 50 },
-            scanRange: 10 // 扫描 photo1.jpg - photo5.jpg
+            scanRange: 5 
         };
 
         const STATE = {
@@ -254,13 +236,11 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
+        // --- 核心修改：日志直接显示在 Loading 界面 ---
         function log(msg, type='info') {
-            const panel = document.getElementById('debug-panel');
-            const div = document.createElement('div');
-            div.textContent = `> ${msg}`;
-            if(type==='success') div.className = 'log-success';
-            if(type==='error') div.className = 'log-error';
-            panel.appendChild(div);
+            const subText = document.getElementById('loader-log');
+            if (subText) subText.textContent = msg;
+            console.log(msg); // 依然保留控制台输出以便查错
         }
 
         async function init() {
@@ -271,22 +251,30 @@
             createParticles(); 
             createDust();     
             
+            document.getElementById('loader-msg').textContent = "Scanning Photos...";
             await loadSmartImages();
             
             setupPostProcessing();
             setupEvents();
             
-            // 绑定音乐按钮事件
+            // --- 音乐控制优化 ---
             const btn = document.getElementById('music-btn');
             btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (JingleBellsSynth.isPlaying) {
-                    JingleBellsSynth.stop();
-                } else {
-                    JingleBellsSynth.play();
-                }
+                e.stopPropagation(); // 防止触发 Raycaster 点击
+                if (JingleBellsSynth.isPlaying) JingleBellsSynth.stop();
+                else JingleBellsSynth.play();
             });
+
+            // 自动播放尝试：用户第一次与页面交互（触摸或点击任意位置）时触发音乐
+            const autoPlayHandler = () => {
+                JingleBellsSynth.play().catch(e => console.log("Audio prevent"));
+                window.removeEventListener('click', autoPlayHandler);
+                window.removeEventListener('touchstart', autoPlayHandler);
+            };
+            window.addEventListener('click', autoPlayHandler);
+            window.addEventListener('touchstart', autoPlayHandler);
             
+            // Loading 结束
             const loader = document.getElementById('loader');
             loader.style.opacity = 0;
             setTimeout(() => loader.remove(), 800);
@@ -307,11 +295,12 @@
                         const texture = await loader.loadAsync(filename);
                         texture.colorSpace = THREE.SRGBColorSpace;
                         addPhotoToScene(texture);
-                        log(`Loaded: photo${i}${ext}`, 'success');
+                        log(`Loaded: photo${i}${ext}`); // 显示在 Loading 界面
                         loaded = true; 
                     } catch (e) {}
                 }
             }
+            log(`Setup Complete.`);
         }
 
         function initThree() {
@@ -646,11 +635,6 @@
                     document.querySelector('.controls-wrapper')?.classList.toggle('ui-hidden');
                     document.getElementById('music-btn')?.classList.toggle('ui-hidden');
                     document.querySelector('h1')?.classList.toggle('ui-hidden');
-                    document.getElementById('debug-panel')?.classList.toggle('ui-hidden'); // 默认隐藏的调试面板
-                    // 这里让debug-panel显示出来
-                    const dbg = document.getElementById('debug-panel');
-                    if(dbg.style.display === 'block') dbg.style.display = 'none';
-                    else dbg.style.display = 'block';
                 }
             });
             window.addEventListener('click', onMouseClick);
@@ -693,4 +677,3 @@
     </script>
 </body>
 </html>
-
